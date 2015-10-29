@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MRVM name="Test" mode="TrainingAndRegression">
+    <Kernel kerneltype="Gaussian">
+        <LengthScale>1000</LengthScale>
+    </Kernel>
+    <InputItems>
+        <MRVMItem name="Slope" type="RealRaster">
+            <Properties>
+                <KeyValue Key="Coordinate System">EPSG</KeyValue>
+            </Properties>
+        </MRVMItem>
+        <MRVMItem name="Previous Land Use" type="CategoricalRaster">
+            <Categories>
+                <Category name="Urban">1</Category>
+                <Category name="Agriculture">2</Category>
+                <Category name="Range">3</Category>
+                <Category name="Forest">4</Category>
+                <Category name="Water">5</Category>
+                <Category name="Wetland">6</Category>
+                <Category name="Barren">7</Category>
+            </Categories>
+        </MRVMItem>
+        <MRVMItem name="Years from Initial Raster" type="RealMRVMItem"/>
+    </InputItems>
+    <OutputItems>
+        <MRVMItem name="Previous Land Use" type="CategoricalRaster">
+            <Properties>
+                <KeyValue Key="Naming Convention">output.gif</KeyValue>
+            </Properties>
+            <Categories>
+                <Category name="Urban">1</Category>
+                <Category name="Agriculture">2</Category>
+                <Category name="Range">3</Category>
+                <Category name="Forest">4</Category>
+                <Category name="Water">5</Category>
+                <Category name="Wetland">6</Category>
+                <Category name="Barren">7</Category>
+            </Categories>
+        </MRVMItem>
+    </OutputItems>
+    <InputValues>
+        <value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.slope.tif,/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.landuse.1984.gif,0</value>
+        <value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.slope.tif,/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.landuse.1992.gif,9</value>
+    </InputValues>
+    <TargetValues>
+        <value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.landuse.1992.gif</value>
+        <value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.landuse.2001.gif</value>
+    </TargetValues>
+    <ForecastInputValues>
+        <value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.slope.gif,/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.landuse.2001.gif,14</value>
+    </ForecastInputValues>
+    <ForecastOutputValues>
+        <value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/cache.landuse.2006.gif</value>
+    </ForecastOutputValues>
+</MRVM>

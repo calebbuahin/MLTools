@@ -1,55 +1,131 @@
-<?xml version="1.0" encoding="utf-8"?>
-<MRVM name="Test">
-
-	<!--Input Items Descriptions-->
-	<InputItems>
-		<MRVMItem name="Slope" type="RealRaster">
-			<Properties>
-				<KeyValue Key="Coordinate System">EPSG</KeyValue>
-			</Properties>
-		</MRVMItem>
-		<MRVMItem name="Previous Land Use" type="CategoricalRaster">
-			<Categories>
-				<Category index ="1" label="Urban"/>
-				<Category index ="2" label="Agriculture"/>
-				<Category index ="3" label="Range"/>
-				<Category index ="4" label="Forest"/>
-				<Category index ="5" label="Water"/>
-				<Category index ="6" label="Wetland"/>
-				<Category index ="7" label="Barren"/>
-			</Categories>
-		</MRVMItem>
-		<MRVMItem name="Years from Previous Raster" type="RealMRVMItem" />
-	</InputItems>
-        
-	<!--Output Items Descriptions-->
-	<OutputItems>
-		<MRVMItem name="Previous Land Use" type="CategoricalRaster">
-			<Properties>
-				<KeyValue Key="Output Folder">output.[2].gif</KeyValue>
-				<KeyValue Key="Naming Convention">output.[2].gif</KeyValue>
-			</Properties>
-			<Categories>
-				<Category index ="1" label="Urban"/>
-				<Category index ="2" label="Agriculture"/>
-				<Category index ="3" label="Range"/>
-				<Category index ="4" label="Forest"/>
-				<Category index ="5" label="Water"/>
-				<Category index ="6" label="Wetland"/>
-				<Category index ="7" label="Barren"/>
-			</Categories>
-		</MRVMItem>
-	</OutputItems>
-
-	<!--Values to use for training-->
-	<TrianingValues>
-		<value>Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.slope.gif,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.1984.gif,0,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.1992.gif</value>
-		<value>Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.slope.gif,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.1992.gif,9,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.2001.gif</value>
-	</TrianingValues>
-
-	<!--Values to use for forecasting-->
-	<ForecastValues>
-		<value>Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.slope.gif,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.2001.gif,5</value>
-	</ForecastValues>
-	
+<?xml version="1.0" encoding="UTF-8"?>
+<MRVM name="Test" mode="TrainingAndRegression">
+    <Tolerance>0.0001</Tolerance>
+    <MaxNumberOfIterations>100000</MaxNumberOfIterations>
+    <AverageNumberOfIterations>0</AverageNumberOfIterations>
+    <Kernel KernelType="Gaussian">
+        <LengthScale>0.1</LengthScale>
+        <UseBias>True</UseBias>
+        <PolynomialPower>2</PolynomialPower>
+    </Kernel>
+    <InputItems>
+        <MRVMItem name="x1" type="RealMRVMItem"/>
+        <MRVMItem name="x2" type="RealMRVMItem"/>
+    </InputItems>
+    <OutputItems>
+        <MRVMItem name="y1" type="RealMRVMItem"/>
+        <MRVMItem name="y2" type="RealMRVMItem"/>
+    </OutputItems>
+    <InputValues>
+        <Value>0.0,4.0</Value>
+        <Value>0.1,3.9</Value>
+        <Value>0.2,3.8</Value>
+        <Value>0.3,3.7</Value>
+        <Value>0.4,3.6</Value>
+        <Value>0.5,3.5</Value>
+        <Value>0.6,3.4</Value>
+        <Value>0.7,3.3</Value>
+        <Value>0.8,3.2</Value>
+        <Value>0.9,3.1</Value>
+        <Value>1.0,3.0</Value>
+        <Value>1.1,2.9</Value>
+        <Value>1.2,2.8</Value>
+        <Value>1.3,2.7</Value>
+        <Value>1.4,2.6</Value>
+        <Value>1.5,2.5</Value>
+        <Value>1.6,2.4</Value>
+        <Value>1.7,2.3</Value>
+        <Value>1.8,2.2</Value>
+        <Value>1.9,2.1</Value>
+        <Value>2.0,2.0</Value>
+    </InputValues>
+    <TargetValues>
+        <Value>-1.41044611617154,0</Value>
+        <Value>-1.41369846338411,0.317527697817395</Value>
+        <Value>-1.40282560285714,0.602858973993462</Value>
+        <Value>-1.3779361726189,0.859369303359452</Value>
+        <Value>-1.339278859629,1.09078582405983</Value>
+        <Value>-1.28723991498042,1.3010387483161</Value>
+        <Value>-1.22233929460629,1.49410467726808</Value>
+        <Value>-1.14522546405211,1.6738480664353</Value>
+        <Value>-1.05666891922233,1.84386716207046</Value>
+        <Value>-0.957554487839988,2.00735055043624</Value>
+        <Value>-0.848872488540577,2.16695003893319</Value>
+        <Value>-0.731708835935607,2.32467493690694</Value>
+        <Value>-0.607234190512752,2.48181195082528</Value>
+        <Value>-0.47669226178323,2.6388738873518</Value>
+        <Value>-0.341387381547481,2.79557920936242</Value>
+        <Value>-0.202671471442975,2.95086325994209</Value>
+        <Value>-0.0619305349900926,3.10292070689627</Value>
+        <Value>0.079429190896898,3.24927751564852</Value>
+        <Value>0.219995286564247,3.38688958119171</Value>
+        <Value>0.358363262049019,3.5122640869485</Value>
+        <Value>0.493150590278542,3.62159875234603</Value>
+    </TargetValues>
+    <ForecastInputValues>
+        <Value>2.1,1.9</Value>
+        <Value>2.2,1.8</Value>
+        <Value>2.3,1.7</Value>
+        <Value>2.4,1.6</Value>
+        <Value>2.5,1.5</Value>
+        <Value>2.6,1.4</Value>
+        <Value>2.7,1.3</Value>
+        <Value>2.8,1.2</Value>
+        <Value>2.9,1.1</Value>
+        <Value>3,0.999999999999997</Value>
+        <Value>3.1,0.899999999999997</Value>
+        <Value>3.2,0.799999999999997</Value>
+        <Value>3.3,0.699999999999998</Value>
+        <Value>3.4,0.599999999999998</Value>
+        <Value>3.5,0.499999999999998</Value>
+        <Value>3.6,0.399999999999998</Value>
+        <Value>3.7,0.299999999999998</Value>
+        <Value>3.8,0.199999999999998</Value>
+        <Value>3.9,0.0999999999999976</Value>
+        <Value>4,0</Value>
+    </ForecastInputValues>
+    <ForecastOutputValues>
+        <Value>0.623010520823914,3.71093341774357</Value>
+        <Value>0.74664553618511,3.77630792350036</Value>
+        <Value>0.862820316156946,3.81391998904355</Value>
+        <Value>0.970374080740219,3.82027679779579</Value>
+        <Value>1.06823218827176,3.79233424474998</Value>
+        <Value>1.1554168728887,3.72761829532965</Value>
+        <Value>1.23105701404178,3.62432361734026</Value>
+        <Value>1.2943968404439,3.48138555386678</Value>
+        <Value>1.34480348148701,3.29852256778513</Value>
+        <Value>1.38177329067604,3.07624746575887</Value>
+        <Value>1.40493687789815,2.81584695425582</Value>
+        <Value>1.41406280024669,2.5193303426216</Value>
+        <Value>1.40905987452218,2.18934943825676</Value>
+        <Value>1.38997808830471,1.82909282742398</Value>
+        <Value>1.35700810049457,1.44215875637596</Value>
+        <Value>1.31047933631153,1.03241168063224</Value>
+        <Value>1.25085669578694,0.60382820133261</Value>
+        <Value>1.1787359086363,0.160338530698599</Value>
+        <Value>1.09483758192485,-0.294330193125335</Value>
+        <Value>1,-0.756802495307929</Value>
+    </ForecastOutputValues>
+    <ForecastOutputUncertainty>
+        <Value>0.623010520823914,3.71093341774357</Value>
+        <Value>0.74664553618511,3.77630792350036</Value>
+        <Value>0.862820316156946,3.81391998904355</Value>
+        <Value>0.970374080740219,3.82027679779579</Value>
+        <Value>1.06823218827176,3.79233424474998</Value>
+        <Value>1.1554168728887,3.72761829532965</Value>
+        <Value>1.23105701404178,3.62432361734026</Value>
+        <Value>1.2943968404439,3.48138555386678</Value>
+        <Value>1.34480348148701,3.29852256778513</Value>
+        <Value>1.38177329067604,3.07624746575887</Value>
+        <Value>1.40493687789815,2.81584695425582</Value>
+        <Value>1.41406280024669,2.5193303426216</Value>
+        <Value>1.40905987452218,2.18934943825676</Value>
+        <Value>1.38997808830471,1.82909282742398</Value>
+        <Value>1.35700810049457,1.44215875637596</Value>
+        <Value>1.31047933631153,1.03241168063224</Value>
+        <Value>1.25085669578694,0.60382820133261</Value>
+        <Value>1.1787359086363,0.160338530698599</Value>
+        <Value>1.09483758192485,-0.294330193125335</Value>
+        <Value>1,-0.756802495307929</Value>
+    </ForecastOutputUncertainty>
 </MRVM>

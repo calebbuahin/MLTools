@@ -3,11 +3,14 @@
 
 #include "mltools_global.h"
 
-class MLTOOLSSHARED_EXPORT MLTools
+class MLTOOLS_EXPORT MLTools
 {
-
 public:
-    MLTools();
+	MLTools();
+	~MLTools();
+
+private:
+
 };
 
 #endif // MLTOOLS_H
