@@ -1,0 +1,55 @@
+<?xml version="1.0" encoding="utf-8"?>
+<MRVM name="Test">
+
+	<!--Input Items Descriptions-->
+	<InputItems>
+		<MRVMItem name="Slope" type="RealRaster">
+			<Properties>
+				<KeyValue Key="Coordinate System">EPSG</KeyValue>
+			</Properties>
+		</MRVMItem>
+		<MRVMItem name="Previous Land Use" type="CategoricalRaster">
+			<Categories>
+				<Category index ="1" label="Urban"/>
+				<Category index ="2" label="Agriculture"/>
+				<Category index ="3" label="Range"/>
+				<Category index ="4" label="Forest"/>
+				<Category index ="5" label="Water"/>
+				<Category index ="6" label="Wetland"/>
+				<Category index ="7" label="Barren"/>
+			</Categories>
+		</MRVMItem>
+		<MRVMItem name="Years from Previous Raster" type="RealMRVMItem" />
+	</InputItems>
+        
+	<!--Output Items Descriptions-->
+	<OutputItems>
+		<MRVMItem name="Previous Land Use" type="CategoricalRaster">
+			<Properties>
+				<KeyValue Key="Output Folder">output.[2].gif</KeyValue>
+				<KeyValue Key="Naming Convention">output.[2].gif</KeyValue>
+			</Properties>
+			<Categories>
+				<Category index ="1" label="Urban"/>
+				<Category index ="2" label="Agriculture"/>
+				<Category index ="3" label="Range"/>
+				<Category index ="4" label="Forest"/>
+				<Category index ="5" label="Water"/>
+				<Category index ="6" label="Wetland"/>
+				<Category index ="7" label="Barren"/>
+			</Categories>
+		</MRVMItem>
+	</OutputItems>
+
+	<!--Values to use for training-->
+	<TrianingValues>
+		<value>Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.slope.gif,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.1984.gif,0,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.1992.gif</value>
+		<value>Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.slope.gif,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.1992.gif,9,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.2001.gif</value>
+	</TrianingValues>
+
+	<!--Values to use for forecasting-->
+	<ForecastValues>
+		<value>Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.slope.gif,Z:\Downloads\cygwin\cache_smartwater\Input\cache\cache.landuse.2001.gif,5</value>
+	</ForecastValues>
+	
+</MRVM>
