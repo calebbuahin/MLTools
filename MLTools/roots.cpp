@@ -4,6 +4,7 @@
 #include <Eigen/Core>
 #include <Eigen/Eigenvalues>
 #include <iostream>
+#include <omp.h>
 
 using namespace std;
 using namespace Eigen;
@@ -49,29 +50,39 @@ complex<double>* Roots::roots(const std::vector<double> &coeffs , int & size)
 
   MatrixXd companion_mat(matsz,matsz);
 
-
-  for(int n = 0; n < matsz; n++)
+  #pragma omp parallel num_threads(8)
+  {
+    #pragma omp for
     {
-      for(int m = 0; m < matsz; m++)
-        {
-          if(n == m + 1)
-            companion_mat(n,m) = 1.0;
-          else
-            companion_mat(n,m) = 0.0;
 
-          if(n == 0)
+      for(int n = 0; n < matsz; n++)
+        {
+          for(int m = 0; m < matsz; m++)
             {
-              companion_mat(n,m) = (-1.0*coeffs[m+1])/(coeffs[0]*1.0);
+              if(n == m + 1)
+                companion_mat(n,m) = 1.0;
+              else
+                companion_mat(n,m) = 0.0;
+
+              if(n == 0)
+                {
+                  companion_mat(n,m) = (-1.0*coeffs[m+1])/(coeffs[0]*1.0);
+                }
             }
         }
     }
 
-  //cout << companion_mat << endl;
+    //cout << companion_mat << endl;
 
-  MatrixXcd eig = companion_mat.eigenvalues();
+    MatrixXcd eig = companion_mat.eigenvalues();
 
-  for(int i = 0; i < matsz; i++)
-    vret[i] =  eig(i) ;
+
+    #pragma omp for
+    {
+      for(int i = 0; i < matsz; i++)
+        vret[i] =  eig(i) ;
+    }
+  }
 
   return vret;
 }

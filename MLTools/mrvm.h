@@ -7,12 +7,23 @@
 #include <QMap>
 #include <QFile>
 #include <QFileInfo>
-#include "gdal_priv.h"
-#include "cpl_conv.h"
 #include <arrayfire.h>
 #include <QXmlStreamReader>
+#include "gdal_priv.h"
+#include "cpl_conv.h" // for CPLMalloc()
 
-using namespace af;
+#ifndef NDEBUG
+#   define ASSERT(condition, message) \
+  do { \
+  if (! (condition)) { \
+  std::cerr << "Assertion `" #condition "` failed in " << __FILE__ \
+  << " line " << __LINE__ << ": " << message << std::endl; \
+  std::exit(EXIT_FAILURE); \
+  } \
+  } while (false)
+#else
+#   define ASSERT(condition, message) do { } while (false)
+#endif
 
 class MLTOOLS_EXPORT MRVMItem
 {
@@ -23,40 +34,76 @@ public:
     Real,
     Categorical
   };
-  
+
+  enum IOType
+  {
+    Input,
+    Output
+  };
+
 public:
-  MRVMItem(const QString& name = "");
+  MRVMItem(IOType type = IOType::Input, const QString& name = "");
   
   ~MRVMItem();
-  
+
+  QString name() const;
+
   void setName(const QString& name);
   
-  QString name() const;
-  
-  virtual void addValue(const QString& value);
+  void clearAllValues();
 
-  void clearValues();
+  const QList<QString>& trainingValuesAsString() const;
 
-  const QList<QString>& values() const;
+  virtual float* trainingValues(int row) = 0;
 
-  virtual double* values(int index) = 0;
+  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues);
 
-  virtual void setValues(int index, double*& values) = 0;
-  
+  virtual void setTrainingValues(int row, float*& values) = 0;
+
+  const QList<QString>& forecastValuesAsString() const;
+
+  virtual float* forecastValues(int row) = 0;
+
+  virtual void setForecastValuesAsString(const QList<QString>& forecastValues);
+
+  virtual void setForecastValues(int row, float*& values) = 0;
+
+  const QList<QString>& forecastUncertaintyValuesAsString() const;
+
+  virtual float* forecastUncertaintyValues(int row) = 0;
+
+  virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
+
+  virtual void setForecastUncertaintyValues(int row, float*& values) = 0;
+
+  virtual void readXML(QXmlStreamReader & xmlReader);
+
+  virtual void writeXML(QXmlStreamWriter& xmlWriter);
+
   virtual int columnCount() = 0;
   
+  int numTrainingValues() const;
+
+  int numForecastValues() const;
+
+  const QMap<QString, QString>& properties() const;
+
   virtual void setProperties(const QMap<QString, QString>& properties);
   
-  const QMap<QString, QString>& properties() const;
-  
-  virtual MRVMValueType mRVMValueType() const = 0;
+  virtual MRVMValueType valueType() const = 0;
   
   virtual QString type() const = 0;
 
+  virtual IOType ioType() const;
+
+  virtual QString toString() const;
+
 protected:
+  IOType m_iotype;
   QString m_name;
   QMap<QString, QString> m_properties;
-  QList<QString> m_values;
+  QList<QString> m_trainingValuesAsString,  m_forecastValuesAsString, m_forecastUncertaintyValuesAsString;
+
 };
 
 class MLTOOLS_EXPORT RealMRVMItem : public MRVMItem
@@ -64,137 +111,209 @@ class MLTOOLS_EXPORT RealMRVMItem : public MRVMItem
   
 public:
   
-  RealMRVMItem(const QString& name = "");
+  RealMRVMItem(IOType type = IOType::Input,const QString& name = "");
   
   ~RealMRVMItem();
   
-  virtual double* values(int index);
+  float* trainingValues(int row) override;
 
-  virtual void setValues(int index, double*& values);
-  
+
+  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+
+  virtual void setTrainingValues(int row, float*& values)  override;
+
+
+  float* forecastValues(int row) override;
+
+  virtual void setForecastValues(int index, float*& values) override;
+
+
+  float* forecastUncertaintyValues(int row) override;
+
+  virtual void setForecastUncertaintyValues(int index, float*& values) override;
+
+
   int columnCount() override;
-  
-  MRVMValueType mRVMValueType() const override;
 
-  virtual QString type() const;
+  MRVMValueType valueType() const override;
+
+  QString type() const override;
+
 
 };
 
 class MLTOOLS_EXPORT RealArrayMRVMItem : public MRVMItem
 {
-  
+
 public:
-  
-  RealArrayMRVMItem(const QString& name = "");
-  
+  RealArrayMRVMItem(IOType type = IOType::Input, const QString& name="");
+
   ~RealArrayMRVMItem();
-  
-  virtual double* values(int index);
-  
-  virtual void setValues(int index, double*& values);
-  
+
+  virtual float* trainingValues(int row) override;
+
+  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+
+  virtual void setTrainingValues(int row, float*& values) override;
+
+  virtual float* forecastValues(int row) override;
+
+  virtual void setForecastValues(int row, float*& values) override;
+
+  virtual float* forecastUncertaintyValues(int row) override;
+
+  virtual void setForecastUncertaintyValues(int row, float*& values) override;
+
+  virtual void readXML(QXmlStreamReader & xmlReader) override;
+
   virtual int columnCount() override;
-  
-  MRVMValueType mRVMValueType() const override;
-  
-  virtual QString type() const;
+
+  virtual MRVMValueType valueType() const override;
+
+  virtual QString type() const override;
 
 protected:
   int m_columnCount;
-  
+
 };
 
 class MLTOOLS_EXPORT CategoricalMRVMItem : public MRVMItem
 {
-  
-public:
-  CategoricalMRVMItem(const QString& name = "");
-  
-  ~CategoricalMRVMItem();
-  
-  virtual double* values(int index);
-  
-  virtual void setValues(int index, double*& value);
-  
-  virtual int columnCount() override;
-  
-  MRVMValueType mRVMValueType() const override ;
-  
-  virtual QString type() const;
 
-  const QMap<int,QString>& categories() const;
-  
-  void setCategories(const QMap<int,QString>& categories);
-  
+public:
+  CategoricalMRVMItem(IOType type = IOType::Input, const QString& name = "");
+
+  ~CategoricalMRVMItem();
+
+  virtual float* trainingValues(int row) override;
+
+  virtual void setTrainingValues(int row, float*& values) override;
+
+  virtual float* forecastValues(int row) override;
+
+  virtual void setForecastValues(int row, float*& values) override;
+
+  virtual float* forecastUncertaintyValues(int row) override;
+
+  virtual void setForecastUncertaintyValues(int row, float*& values) override;
+
+  virtual void readXML(QXmlStreamReader & xmlReader) override;
+
+  virtual void writeXML(QXmlStreamWriter& xmlWriter) override;
+
+  virtual int columnCount() override;
+
+  virtual MRVMValueType valueType() const override;
+
+  virtual QString type() const override;
+
+  QMap<QString, int> categories() const;
+
 protected:
-  QMap<int,QString> m_categories;
-  
+  QMap<QString,int> m_categories;
+  QMap<int,int> m_categoriesByIndex;
+  QMap<int,int> m_indexByCategory;
+
 };
 
 class MLTOOLS_EXPORT RealRaster : public RealArrayMRVMItem
 {
-  
+
 public:
-  
-  RealRaster(const QString& name);
-  
+
+  RealRaster(IOType type = IOType::Input,const QString& name ="");
+
   ~RealRaster();
-  
-  void addValue(const QString& value) override;
-  
-  double* values(int index) override;
 
-  void setValues(int index, double*& values) override;
-  
-  int columnCount() override;
-  
-  virtual QString type() const;
+  virtual float* trainingValues(int row) override;
+
+  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+
+  virtual void setTrainingValues(int row, float*& values) override;
+
+  virtual float* forecastValues(int row) override;
+
+  virtual void setForecastValues(int row, float*& values) override;
+
+  virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
+
+  virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
+
+  virtual float* forecastUncertaintyValues(int row) override;
+
+  virtual void setForecastUncertaintyValues(int row, float*& values) override;
+
+  virtual void readXML(QXmlStreamReader & xmlReader) override;
+
+  virtual QString type() const override;
 
 private:
+  void writeDataToRaster(const QString& filePath, float*& values);
+
+  float* readDataFromRaster(const QString& filePath);
+
   void readRasterProperties();
-  
-private:
-  int m_xSize, m_ySize;
-  int* m_validCell;
-  double m_noData;
-  int m_columnCount;
-  GDALDriver* m_driver;
-  double m_gcp[6];
-  QString m_wktproj;
-};
 
-
-class MLTOOLS_EXPORT CategoricalRaster : public CategoricalMRVMItem
-{
-
-public:
-
-  CategoricalRaster(const QString& name);
-  
-  ~CategoricalRaster();
-
-  void addValue(const QString& value) override;
-
-  double* values(int index) override;
-
-  void setValues(int index, double*& value) override;
-
-  int columnCount() override;
-
-  virtual QString type() const;
-
-private:
-  void readRasterProperties();
+  void createOutputRasters();
 
 private:
   int m_xSize, m_ySize;
   int* m_validCell;
-  double m_noData;
-  int m_columnCount;
+  float m_noData;
   GDALDriver* m_driver;
   double m_gcp[6];
-  QString m_wktproj;
+  const char* m_wktproj;
 };
+
+//class MLTOOLS_EXPORT CategoricalRaster : public CategoricalMRVMItem
+//{
+
+//public:
+
+//  CategoricalRaster(IOType type = IOType::Input,const QString& name = "");
+
+//  ~CategoricalRaster();
+
+//  virtual float* trainingValues(int row) override;
+
+//  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+
+//  virtual void setTrainingValues(int row, float*& values) override;
+
+//  virtual float* forecastValues(int row) override;
+
+//  virtual void setForecastValues(int row, float*& values) override;
+
+//  virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
+
+//  virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
+
+//  virtual float* forecastUncertaintyValues(int row) override;
+
+//  virtual void setForecastUncertaintyValues(int row, float*& values) override;
+
+//  virtual void readXML(QXmlStreamReader & xmlReader) override;
+
+//  virtual QString type() const override;
+
+//private:
+//  void writeDataToRaster(const QString& filePath, float*& values);
+
+//  float* readDataFromRaster(const QString& filePath);
+
+//  void readRasterProperties();
+
+//  void createOutputRasters();
+
+//private:
+//  int m_xSize, m_ySize;
+//  int* m_validCell;
+//  float m_noData;
+//  int m_columnCount;
+//  GDALDriver* m_driver;
+//  double m_gcp[6];
+//  QString m_wktproj;
+//};
 
 
 class MLTOOLS_EXPORT Kernel
@@ -205,6 +324,7 @@ public:
     Gaussian,
     Laplace,
     Polynomial,
+    HomogeneousPolynomail,
     Spline,
     Cauchy,
     Cubic,
@@ -234,30 +354,32 @@ public:
 
   void setUseBias(bool m_useBias);
   
-  array calculateKernel(const array& x1, const array& x2);
+  af::array calculateKernel(const af::array& x1, const af::array& x2);
 
-//private:
+  //private:
 public:
 
-  array calculateGaussianKernel(const array& x1, const array& x2);
+  af::array calculateGaussianKernel(const af::array& x1, const af::array& x2);
 
-  array calculateLaplaceKernel(const array& x1, const array& x2);
+  af::array calculateLaplaceKernel(const af::array& x1, const af::array& x2);
 
-  array calculatePolynomialKernel(const array& x1, const array& x2);
+  af::array calculatePolynomialKernel(const af::array& x1, const af::array& x2);
+  
+  af::array calculateHomogeneousPolynomialKernel(const af::array& x1, const af::array& x2);
 
-  array calculateSplineKernel(const array& x1, const array& x2);
+  af::array calculateSplineKernel(const af::array& x1, const af::array& x2);
 
-  array calculateCauchyKernel(const array& x1, const array& x2);
+  af::array calculateCauchyKernel(const af::array& x1, const af::array& x2);
 
-  array calculateCubicKernel(const array& x1, const array& x2);
+  af::array calculateCubicKernel(const af::array& x1, const af::array& x2);
 
-  array calculateDistanceKernel(const array& x1, const array& x2);
+  af::array calculateDistanceKernel(const af::array& x1, const af::array& x2);
 
-  array calculateThinPlateSplineKernel(const array& x1, const array& x2);
+  af::array calculateThinPlateSplineKernel(const af::array& x1, const af::array& x2);
 
-  array calculateBubbleKernel(const array& x1, const array& x2);
+  af::array calculateBubbleKernel(const af::array& x1, const af::array& x2);
 
-  array distanceSquared(const array& x , const array& y);
+  af::array distanceSquared(const af::array& x , const af::array& y);
 
 private:
   KernelType m_kernelType;
@@ -289,14 +411,20 @@ public:
   
   int targetDimension() const;
   
-  int trainingItemsCount() const;
-
   int maxNumberOfIterations() const;
   
   void setMaxNumberOfIterations(int niters);
+
+  bool verbose() const;
+
+  void setVerbose(bool verbose);
+
+  int numberOfIterations() const ;
   
   MRVM::Mode mode() const;
-  
+
+  bool converged () const;
+
   const Kernel& kernel() const;
   
   const QList<MRVMItem*>& inputItems() const;
@@ -311,56 +439,75 @@ public:
   
   bool removeOutputItem(MRVMItem* const inputItem);
   
-  const array& usedRelevantVectors() const;
+  QString matrixOutputFile() const;
   
-  void save();
+  void setMatrixOutputFile(const QString& matrixOutputFile);
+  
+  const af::array& usedRelevantVectors() const;
+
+  const af::array& alpha() const;
+  
+  const af::array& invSigma() const;
+
+  const af::array& omega() const;
+
+  const af::array& mu() const;
+  
+  void saveProject();
 
   void start();
 
   void performTraining();
 
-  void mrvm1();
+  void mrvm();
 
-  void mrvm2();
-
-  void fmrvm1();
+  void fmrvm();
 
   void performRegression();
+
+  static bool gdalRegistered();
 
 #if Q_DEBUG
 #else
 private:
 #endif
 
-  void readFile();
+  void readProject();
+
+  void qaqc();
   
-  MRVMItem* readMRVMItem(QXmlStreamReader& xmlReader) ;
+  MRVMItem* readMRVMItem(MRVMItem::IOType type,  QXmlStreamReader& reader);
   
-  void writeMRVMItem(MRVMItem* const item, QXmlStreamWriter& xmlReader);
-  
-  float* getInputMatrix(int& row, int& column);
+  float* getInputMatrix(int& row, int& column, bool training = true);
 
-  float* getTargetMatrix(int& row, int& column);
+  float* getTargetMatrix(int& row, int& column, bool training = true);
 
-  void setTargetMatrixRegressionValues(float*& values);
+  void writeOutput();
 
-  QPair<int,double> calculateDeltaL(const array& mask, const array& alpha, 
-                                    const array& alphaNew, const array& sPrime, 
-                                    const array& qPrime, const array& s, const array& q);
+  QPair<int,double> calculateDeltaL(const af::array& mask, const af::array& alpha,
+                                    const af::array& alphaNew, const af::array& sPrime,
+                                    const af::array& qPrime, const af::array& s, const af::array& q);
 
-  array corrcov(const array& cov);
+
+
+  af::array corrcov(const af::array& cov);
   
 private:
   QList<MRVMItem*> m_inputItems, m_outputItems;
-  array m_inputMatrix, m_targetMatrix , m_used , m_alpha , invSigma, m_omega;
-  int m_maxNumberOfIterations = 1000 , m_averageNumberOfIterations , m_trainingItemsCount;
+  af::array m_inputMatrix, m_targetMatrix , m_used , m_alpha , m_invSigma, m_omega , m_inputForecastMatrix , m_Mu , m_outputForecastMatrix , m_stdPrediction;
+  int m_maxNumberOfIterations = 1000 , m_numberOfIterations ;
+  float m_minChangeAlpha, m_maxChangeAlpha;
+  QString m_matrixOutputFile;
+  int N, V;
   QFileInfo m_file;
   QString m_name;
   MRVM::Mode m_mode;
   Kernel m_kernel;
-  static bool gdalRegistered;
+  static bool s_gdalRegistered;
+  bool m_converged;
   double m_tolerance = 0.01;
-  int algmode = 1;
+  int algmode = 0;
+  bool m_verbose;
 };
 
 

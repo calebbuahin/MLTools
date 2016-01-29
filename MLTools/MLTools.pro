@@ -27,9 +27,13 @@ else:unix: LIBS += -L$$PWD/../../../../../../usr/local/lib/ -lafopencl.3.1.0
 INCLUDEPATH += $$PWD/../../../../../../usr/local/include
 DEPENDPATH += $$PWD/../../../../../../usr/local/include
 
-win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../../usr/local/Cellar/gdal/1.11.2_3/lib/release/ -lgdal.1
-else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../../usr/local/Cellar/gdal/1.11.2_3/lib/debug/ -lgdal.1
-else:unix: LIBS += -L$$PWD/../../../../../../usr/local/Cellar/gdal/1.11.2_3/lib/ -lgdal.1
 
-INCLUDEPATH += $$PWD/../../../../../../usr/local/Cellar/gdal/1.11.2_3/include
-DEPENDPATH += $$PWD/../../../../../../usr/local/Cellar/gdal/1.11.2_3/include
+QMAKE_LFLAGS += -F/Library/Frameworks/
+LIBS += -framework GDAL
+
+win32:CONFIG(release, debug|release): LIBS += -L$$PWD/../../../../../../usr/local/Cellar/libiomp/20150701/lib/release/ -liomp5
+else:win32:CONFIG(debug, debug|release): LIBS += -L$$PWD/../../../../../../usr/local/Cellar/libiomp/20150701/lib/debug/ -liomp5
+else:unix: LIBS += -L$$PWD/../../../../../../usr/local/Cellar/libiomp/20150701/lib/ -liomp5
+
+INCLUDEPATH += $$PWD/../../../../../../usr/local/Cellar/libiomp/20150701/include/libiomp
+DEPENDPATH += $$PWD/../../../../../../usr/local/Cellar/libiomp/20150701/include/libiomp

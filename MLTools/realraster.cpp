@@ -2,8 +2,8 @@
 #include "mrvm.h"
 #include <QDebug>
 
-RealRaster::RealRaster(const QString &name)
-  :RealArrayMRVMItem(name), m_validCell(NULL) , m_columnCount(0) , m_driver(NULL)
+RealRaster::RealRaster(MRVMItem::IOType iotype, const QString &name)
+  :RealArrayMRVMItem(iotype, name), m_validCell(NULL) ,m_driver(NULL)
 {
   
   
@@ -22,133 +22,209 @@ RealRaster::~RealRaster()
   m_driver = NULL;
 }
 
-double* RealRaster::values(int index)
+
+float* RealRaster::trainingValues(int row)
 {
-  if(index < m_values.count())
+  if(row < m_forecastValuesAsString.count())
     {
-      GDALDataset* dataset = (GDALDataset*)GDALOpen(m_values[index].toStdString().c_str(), GA_ReadOnly);
-      
-      if(dataset)
-        {
-          GDALRasterBand* rasterBand = dataset->GetRasterBand(1);
-          float * data = (float*) CPLMalloc(sizeof(float)*m_xSize*m_ySize);
-
-          rasterBand->RasterIO( GF_Read, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Float32, 0,0 );
-
-          double* values = new double[m_columnCount];
-
-          int count = 0;
-          
-          for(int i = 0 ; i < m_xSize ; i++)
-            {
-              for(int j = 0 ; j < m_ySize ; j++)
-                {
-                  if(m_validCell[j * m_xSize + i])
-                    {
-                      values[count] = data[j*m_xSize + i] ;
-                      count++;
-                    }
-                }
-            }
-          
-          
-          
-          CPLFree(data);
-          GDALClose(dataset);
-          
-          rasterBand = NULL;
-          dataset = NULL;
-
-          return values;
-        }
+      return readDataFromRaster(m_forecastValuesAsString[row]);
     }
-  
+
   return NULL;
 }
 
-void RealRaster::addValue(const QString & values)
+
+void RealRaster::setTrainingValuesAsString(const QList<QString> &trainingValues)
 {
-  MRVMItem::addValue(values);
-  readRasterProperties();
+  MRVMItem::setTrainingValuesAsString(trainingValues);
 }
 
-void RealRaster::setValues(int index, double *&values)
+
+void RealRaster::setTrainingValues(int row, float *&values)
+{
+  if(row < m_trainingValuesAsString.count())
+    {
+      QString filePath = m_trainingValuesAsString[row];
+      writeDataToRaster(filePath, values);
+    }
+}
+
+
+float* RealRaster::forecastValues(int row)
+{
+  if(row < m_forecastValuesAsString.count())
+    {
+      return readDataFromRaster(m_forecastValuesAsString[row]);
+    }
+
+  return NULL;
+}
+
+
+void RealRaster::setForecastValues(int row, float *&values)
 {
   //check if file exists. otherwise create.
-  if(index < m_values.count())
+  if(row < m_forecastValuesAsString.count())
     {
-      QString filePath = m_values[index];
-      
-      GDALDataset* dataset = NULL;
-      
-      if(!QFile::exists(filePath))
+      QString filePath = m_forecastValuesAsString[row];
+      writeDataToRaster(filePath, values);
+    }
+}
+
+void RealRaster::setForecastValuesAsString(const QList<QString> &forecastValues)
+{
+  MRVMItem::setForecastValuesAsString(forecastValues);
+}
+
+
+void RealRaster::setForecastUncertaintyValueAsString(const QList<QString> &forecastUncertaintyValuesAsString)
+{
+    MRVMItem::setForecastUncertaintyValueAsString(forecastUncertaintyValuesAsString);
+}
+
+float* RealRaster::forecastUncertaintyValues(int row)
+{
+
+  if(row < m_forecastUncertaintyValuesAsString.count())
+    {
+      return readDataFromRaster(m_forecastUncertaintyValuesAsString[row]);
+    }
+
+  return NULL;
+}
+
+
+void RealRaster::setForecastUncertaintyValues(int row, float *& values)
+{
+  //check if file exists. otherwise create.
+  if(row < m_forecastUncertaintyValuesAsString.count())
+    {
+      QString filePath = m_forecastUncertaintyValuesAsString[row];
+      writeDataToRaster(filePath, values);
+    }
+
+}
+
+
+void RealRaster::readXML(QXmlStreamReader &xmlReader)
+{
+  MRVMItem::readXML(xmlReader);
+  readRasterProperties();
+
+  if(m_iotype == MRVMItem::Output)
+    {
+      createOutputRasters();
+    }
+}
+
+QString RealRaster::type() const
+{
+  return "RealRaster";
+}
+
+void RealRaster::writeDataToRaster(const QString& filePath, float*& values)
+{
+  //check if file exists. otherwise create.
+
+  GDALDataset* dataset = NULL;
+
+  if(!QFile::exists(filePath) && m_iotype == MRVMItem::Output)
+    {
+      dataset = m_driver->Create(filePath.toStdString().c_str(), m_xSize , m_ySize, 1, GDT_Float32, NULL);
+      dataset->SetGeoTransform(m_gcp);
+      dataset->SetProjection(m_wktproj);
+    }
+  else
+    {
+      dataset = (GDALDataset*)GDALOpen(filePath.toStdString().c_str() , GA_Update);
+    }
+
+  if(dataset)
+    {
+      GDALRasterBand* dataBand = dataset->GetRasterBand(1);
+      float * data = (float*) CPLMalloc(sizeof(float)*m_xSize*m_ySize);
+
+      int count = 0;
+
+      for(int i = 0 ; i < m_xSize ; i++)
         {
-          dataset = m_driver->Create(filePath.toStdString().c_str(), m_xSize , m_ySize, 1, GDT_Float32, NULL);
-          dataset->SetGeoTransform(m_gcp);
-          dataset->SetProjection(m_wktproj.toStdString().c_str());
+          for(int j = 0 ; j < m_ySize ; j++)
+            {
+              if(m_validCell[j * m_xSize + i])
+                {
+                  data[j*m_xSize + i] = values[count];
+                  count++;
+                }
+              else
+                {
+                  data[j*m_xSize + i] = m_noData;
+                }
+            }
         }
-      else
-        {
-          dataset = (GDALDataset*)GDALOpen(filePath.toStdString().c_str() , GA_Update);
-        }
-      
+
+      dataBand->RasterIO(GF_Write, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Float32, 0,0 );
+
+      CPLFree(data);
+      GDALClose(dataset);
+      dataBand = NULL;
+      dataset = NULL;
+    }
+
+  delete[] values;
+}
+
+float* RealRaster::readDataFromRaster(const QString& filePath)
+{
+  float* values = NULL;
+
+  if(QFile::exists(filePath) && m_columnCount)
+    {
+      GDALDataset* dataset = (GDALDataset*)GDALOpen(filePath.toStdString().c_str() , GA_ReadOnly);
+
       if(dataset)
         {
           GDALRasterBand* dataBand = dataset->GetRasterBand(1);
           float * data = (float*) CPLMalloc(sizeof(float)*m_xSize*m_ySize);
-          dataBand->RasterIO( GF_Read, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Float32, 0,0 );
-          
+          values = new float[m_columnCount];
+
+          dataBand->RasterIO(GF_Read, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Float32, 0,0 );
+
+
           int count = 0;
-          
+
           for(int i = 0 ; i < m_xSize ; i++)
             {
               for(int j = 0 ; j < m_ySize ; j++)
                 {
                   if(m_validCell[j * m_xSize + i])
                     {
-                      data[j*m_xSize + i] = values[count];
+                      values[count] = data[j*m_xSize + i];
                       count++;
-                    }
-                  else
-                    {
-                      data[j*m_xSize + i] = m_noData;
                     }
                 }
             }
-          
-          dataBand->RasterIO(GF_Write, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Float32, 0,0 );
+
+
 
           CPLFree(data);
           GDALClose(dataset);
           dataBand = NULL;
           dataset = NULL;
+
+          return values;
         }
     }
-}
 
-int RealRaster::columnCount()
-{
-  if(!m_columnCount && m_values.length() > 0)
-    {
-      readRasterProperties();
-    }
-  
-  return m_columnCount;
-}
-
-QString RealRaster::type() const
-{
-    return "RealRaster";
+  delete[] values;
 }
 
 void RealRaster::readRasterProperties()
 {
-  if(m_values.count() > 0)
+  if(m_trainingValuesAsString.count() > 0)
     {
-      QFileInfo file(m_values[0]);
-      
-      GDALDataset * dataset = (GDALDataset*)GDALOpen(file.absoluteFilePath().toStdString().c_str(), GA_ReadOnly);
-      m_driver = dataset->GetDriver();
+
+      GDALDataset * dataset = (GDALDataset*)GDALOpen(m_trainingValuesAsString[0].toStdString().c_str(), GA_ReadOnly);
+      m_driver =  dataset->GetDriver();
       dataset->GetGeoTransform(m_gcp);
 
       if(dataset)
@@ -162,7 +238,7 @@ void RealRaster::readRasterProperties()
           m_xSize = dataset->GetRasterXSize();
           m_ySize = dataset->GetRasterYSize();
           m_noData = rasterBand->GetNoDataValue();
-          m_wktproj = QString(dataset->GetGCPProjection());
+          m_wktproj = dataset->GetGCPProjection();
           
           float * data = (float*) CPLMalloc(sizeof(float)*m_xSize*m_ySize);
           
@@ -201,3 +277,30 @@ void RealRaster::readRasterProperties()
         }
     }
 }
+
+void RealRaster::createOutputRasters()
+{
+  if(m_driver)
+    {
+      for(int i = 0 ; i < m_forecastValuesAsString.count() ; i++)
+        {
+          GDALDataset* newData = m_driver->Create(m_forecastValuesAsString[0].toStdString().c_str() ,m_xSize , m_ySize , 1, GDT_CFloat32, NULL);
+          newData->SetProjection(m_wktproj);
+          newData->SetGeoTransform(m_gcp);
+          GDALRasterBand* newBand = newData->GetRasterBand(1);
+          newBand->SetNoDataValue(m_noData);
+          GDALClose(newData);
+        }
+
+      for(int i = 0 ; i < m_forecastUncertaintyValuesAsString.count() ; i++)
+        {
+          GDALDataset* newData = m_driver->Create(m_forecastUncertaintyValuesAsString[0].toStdString().c_str() ,m_xSize , m_ySize , 1, GDT_CFloat32,NULL);
+          newData->SetProjection(m_wktproj);
+          newData->SetGeoTransform(m_gcp);
+          GDALRasterBand* newBand = newData->GetRasterBand(1);
+          newBand->SetNoDataValue(m_noData);
+          GDALClose(newData);
+        }
+    }
+}
+

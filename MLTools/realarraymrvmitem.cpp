@@ -1,8 +1,8 @@
 #include "stdafx.h"
 #include "mrvm.h"
 
-RealArrayMRVMItem::RealArrayMRVMItem(const QString& name)
-    :MRVMItem(name), m_columnCount(-1)
+RealArrayMRVMItem::RealArrayMRVMItem(MRVMItem::IOType iotype,const QString& name)
+  :MRVMItem(iotype, name),  m_columnCount(0)
 {
 
 }
@@ -12,80 +12,146 @@ RealArrayMRVMItem::~RealArrayMRVMItem()
 
 }
 
-double* RealArrayMRVMItem::values(int index)
+
+float* RealArrayMRVMItem::trainingValues(int row)
 {
-    if(index < m_values.length())
+  ASSERT(row < m_trainingValuesAsString.count(),"Row must be less or equal to number of rows");
+
+  QString line = m_trainingValuesAsString[row];
+  QStringList columnValues = line.split(",");
+
+  float* values = new float[m_columnCount];
+
+  for(int i = 0 ; i < m_columnCount; i++)
     {
-        QString s = m_values[index];
-
-        s = s.replace("[","").replace("]","");
-        QStringList args = s.split(":");
-
-        assert(args.length() == columnCount());
-
-        if(args.length() > 0)
-        {
-           int length = args.length();
-
-           double* values = new double[args.length()];
-
-           for(int i = 0 ; i < length ; i++)
-           {
-              values[i] = args[i].toDouble();
-           }
-
-           return values;
-        }
+      values[i] = columnValues[i].toFloat();
     }
 
-    return NULL;
+  return values;
 }
 
-void RealArrayMRVMItem::setValues(int index, double*& values)
+void RealArrayMRVMItem::setTrainingValuesAsString(const QList<QString> &trainingValues)
 {
-    if(columnCount() > 0 && index < m_values.count())
+  QStringList line = trainingValues[0].split(",");
+
+  m_columnCount = line.size();
+
+  MRVMItem::setTrainingValuesAsString(trainingValues);
+}
+
+void RealArrayMRVMItem::setTrainingValues(int row, float *&values)
+{
+  ASSERT(row < m_trainingValuesAsString.count(),"Row must be less or equal to number of rows");
+
+  QString line =  QString::number(values[0]);
+
+  if(m_columnCount > 1)
     {
-        QString s = QString("%").arg(values[0]);
-
-        if(m_columnCount > 1)
+      for(int i = 1 ; i < m_columnCount; i++)
         {
-            for(int i = 1; i < m_columnCount; i++)
-            {
-                s = s + QString(",%").arg(values[i]);
-            }
+          line = line + "," + QString::number(values[i]);
         }
-
-        s = "[" + s + "]";
-        m_values[index] = s;
     }
 
-    delete[] values;
-    values = NULL;
+  m_trainingValuesAsString[row] = line;
+
+  delete[] values;
+  values = NULL;
+}
+
+
+float* RealArrayMRVMItem::forecastValues(int row)
+{
+  ASSERT(row < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
+
+  QString line = m_forecastValuesAsString[row];
+  QStringList columnValues = line.split(",");
+
+  float* values = new float[m_columnCount];
+
+  for(int i = 0 ; i < m_columnCount; i++)
+    {
+      values[i] = columnValues[i].toFloat();
+    }
+
+  return values;
+}
+
+void RealArrayMRVMItem::setForecastValues(int row, float *&values)
+{
+  ASSERT(row < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
+
+  QString line =  QString::number(values[0]);
+
+  if(m_columnCount > 1)
+    {
+      for(int i = 1 ; i < m_columnCount; i++)
+        {
+          line = line + "," + QString::number(values[i]);
+        }
+    }
+
+  m_forecastValuesAsString[row] = line;
+
+  delete[] values;
+  values = NULL;
+}
+
+float* RealArrayMRVMItem::forecastUncertaintyValues(int row)
+{
+  ASSERT(row < m_forecastUncertaintyValuesAsString.count(),"Row must be less or equal to number of rows");
+
+  QString line = m_forecastUncertaintyValuesAsString[row];
+  QStringList columnValues = line.split(",");
+
+  float* values = new float[m_columnCount];
+
+  for(int i = 0 ; i < m_columnCount; i++)
+    {
+      values[i] = columnValues[i].toFloat();
+    }
+
+  return values;
+}
+
+void RealArrayMRVMItem::setForecastUncertaintyValues(int row, float*& values)
+{
+  ASSERT(row < m_forecastUncertaintyValuesAsString.count(),"Row must be less or equal to number of rows");
+
+  QString line =  QString::number(values[0]);
+
+  if(m_columnCount > 1)
+    {
+      for(int i = 1 ; i < m_columnCount; i++)
+        {
+          line = line + "," + QString::number(values[i]);
+        }
+    }
+
+  m_forecastUncertaintyValuesAsString[row] = line;
+
+  delete[] values;
+  values = NULL;
+}
+
+void RealArrayMRVMItem::readXML(QXmlStreamReader &xmlReader)
+{
+  MRVMItem::readXML(xmlReader);
+  QStringList line = m_trainingValuesAsString[0].split(",");
+  m_columnCount = line.size();
 }
 
 int RealArrayMRVMItem::columnCount()
 {
-    if(m_columnCount <= -1)
-    {
-        if(m_values.length() > 0)
-        {
-            QString s = m_values[0];
-            s.replace("[","").replace("]","");
-            QStringList args = s.split(":");
-
-            m_columnCount = args.length();
-        }
-    }
-
-    return m_columnCount;
+  return m_columnCount;
 }
 
-MRVMItem::MRVMValueType RealArrayMRVMItem::mRVMValueType() const
+MRVMItem::MRVMValueType RealArrayMRVMItem::valueType() const
 {
-    return MRVMItem::Real;
+  return MRVMItem::Real;
 }
 
 QString RealArrayMRVMItem::type() const
 {
-    return "RealArrayMRVMItem";
+  return "RealArrayMRVMItem";
 }

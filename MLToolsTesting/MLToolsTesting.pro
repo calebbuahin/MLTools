@@ -5,7 +5,11 @@
 TEMPLATE = app
 TARGET = MLToolsTesting
 QT += core
+
+# CONFIG -= app_bundle
 CONFIG += debug console
+
+
 INCLUDEPATH += . \
                ./GeneratedFiles/Debug
 
