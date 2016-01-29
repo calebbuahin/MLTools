@@ -265,55 +265,55 @@ private:
   const char* m_wktproj;
 };
 
-//class MLTOOLS_EXPORT CategoricalRaster : public CategoricalMRVMItem
-//{
+class MLTOOLS_EXPORT CategoricalRaster : public CategoricalMRVMItem
+{
 
-//public:
+public:
 
-//  CategoricalRaster(IOType type = IOType::Input,const QString& name = "");
+  CategoricalRaster(IOType type = IOType::Input,const QString& name = "");
 
-//  ~CategoricalRaster();
+  ~CategoricalRaster();
 
-//  virtual float* trainingValues(int row) override;
+  virtual float* trainingValues(int row) override;
 
-//  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+  virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
 
-//  virtual void setTrainingValues(int row, float*& values) override;
+  virtual void setTrainingValues(int row, float*& values) override;
 
-//  virtual float* forecastValues(int row) override;
+  virtual float* forecastValues(int row) override;
 
-//  virtual void setForecastValues(int row, float*& values) override;
+  virtual void setForecastValues(int row, float*& values) override;
 
-//  virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
+  virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
 
-//  virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
+  virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
 
-//  virtual float* forecastUncertaintyValues(int row) override;
+  virtual float* forecastUncertaintyValues(int row) override;
 
-//  virtual void setForecastUncertaintyValues(int row, float*& values) override;
+  virtual void setForecastUncertaintyValues(int row, float*& values) override;
 
-//  virtual void readXML(QXmlStreamReader & xmlReader) override;
+  virtual void readXML(QXmlStreamReader & xmlReader) override;
 
-//  virtual QString type() const override;
+  virtual QString type() const override;
 
-//private:
-//  void writeDataToRaster(const QString& filePath, float*& values);
+private:
+  void writeDataToRaster(const QString& filePath, float*& values);
 
-//  float* readDataFromRaster(const QString& filePath);
+  float* readDataFromRaster(const QString& filePath);
 
-//  void readRasterProperties();
+  void readRasterProperties();
 
-//  void createOutputRasters();
+  void createOutputRasters();
 
-//private:
-//  int m_xSize, m_ySize;
-//  int* m_validCell;
-//  float m_noData;
-//  int m_columnCount;
-//  GDALDriver* m_driver;
-//  double m_gcp[6];
-//  QString m_wktproj;
-//};
+private:
+  int m_xSize, m_ySize;
+  int* m_validCell;
+  float m_noData;
+  int m_columnCount;
+  GDALDriver* m_driver;
+  double m_gcp[6];
+  const char* m_wktproj;
+};
 
 
 class MLTOOLS_EXPORT Kernel
