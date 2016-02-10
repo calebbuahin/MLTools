@@ -1,2 +1,2 @@
-# MLTools
-A collection of machine learning tools 
+# MRVM	
+GPU enabled multivariate relevant vector machine code

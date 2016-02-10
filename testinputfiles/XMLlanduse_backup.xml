@@ -1,0 +1,113 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MRVM name="Test" mode="TrainingAndRegression">
+    <Tolerance>1</Tolerance>
+    <MaxNumberOfIterations>100</MaxNumberOfIterations>
+    <NumberOfIterations>10</NumberOfIterations>
+    <Verbose>True</Verbose>
+    <Converged>True</Converged>
+    <MaxAlphaChange>15.8409</MaxAlphaChange>
+    <MinAlphaChange>1.04905e-05</MinAlphaChange>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixluse.txt</MatrixOutputFile>
+    <Kernel KernelType="Gaussian">
+        <LengthScale>1</LengthScale>
+        <UseBias>True</UseBias>
+        <PolynomialPower>4</PolynomialPower>
+    </Kernel>
+    <InputItems>
+        <MRVMItem name="Previous Land Use" type="CategoricalRaster">
+            <Properties>
+                <Property Name="ReadFromFile"></Property>
+            </Properties>
+            <Categories>
+                <Category Name="Agriculture">2</Category>
+                <Category Name="Barren">7</Category>
+                <Category Name="Forest">4</Category>
+                <Category Name="Range">3</Category>
+                <Category Name="Urban">1</Category>
+                <Category Name="Water">5</Category>
+                <Category Name="Wetland">6</Category>
+            </Categories>
+            <TrainingValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.1984.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.1992.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.2001.tif</Value>
+            </TrainingValues>
+            <ForecastValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.1984.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.1992.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.2001.tif</Value>
+            </ForecastValues>
+        </MRVMItem>
+        <MRVMItem name="Slope" type="RealRaster">
+            <Properties>
+                <Property Name="ReadFromFile">false</Property>
+            </Properties>
+            <TrainingValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
+            </TrainingValues>
+            <ForecastValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
+            </ForecastValues>
+            <ForecastUncertaintyValues/>
+        </MRVMItem>
+        <MRVMItem name="Years from Initial Raster" type="RealMRVMItem">
+            <Properties>
+                <Property Name="ReadFromFile">false</Property>
+            </Properties>
+            <TrainingValues>
+                <Value>8</Value>
+                <Value>17</Value>
+                <Value>22</Value>
+            </TrainingValues>
+            <ForecastValues>
+                <Value>8</Value>
+                <Value>17</Value>
+                <Value>22</Value>
+            </ForecastValues>
+            <ForecastUncertaintyValues/>
+        </MRVMItem>
+        <RelevantVectors>
+            <Vector>48</Vector>
+            <Vector>96</Vector>
+            <Vector>104</Vector>
+            <Vector>106</Vector>
+            <Vector>107</Vector>
+            <Vector>112</Vector>
+        </RelevantVectors>
+    </InputItems>
+    <OutputItems>
+        <MRVMItem name="Previous Land Use" type="CategoricalRaster">
+            <Properties>
+                <Property Name="ReadFromFile">false</Property>
+            </Properties>
+            <Categories>
+                <Category Name="Agriculture">2</Category>
+                <Category Name="Barren">7</Category>
+                <Category Name="Forest">4</Category>
+                <Category Name="Range">3</Category>
+                <Category Name="Urban">1</Category>
+                <Category Name="Water">5</Category>
+                <Category Name="Wetland">6</Category>
+            </Categories>
+            <TrainingValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.1992.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.2001.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.landuse.2006.tif</Value>
+            </TrainingValues>
+            <ForecastValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/outputs/cache.landuse.output.1992.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/outputs/cache.landuse.output.2001.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/outputs/cache.landuse.output.2006.tif</Value>
+            </ForecastValues>
+            <ForecastUncertaintyValues>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/outputs/cache.landuse.uncert.1992.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/outputs/cache.landuse.uncert.2001.tif</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/outputs/cache.landuse.uncert.2006.tif</Value>
+            </ForecastUncertaintyValues>
+        </MRVMItem>
+    </OutputItems>
+</MRVM>

@@ -1,0 +1,64 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<MRVM name="Test" mode="TrainingAndRegression">
+    <Tolerance>0.1</Tolerance>
+    <MaxNumberOfIterations>2</MaxNumberOfIterations>
+    <NumberOfIterations>5</NumberOfIterations>
+    <Verbose>True</Verbose>
+    <Converged>False</Converged>
+    <MaxAlphaChange>1.17549e-38</MaxAlphaChange>
+    <MinAlphaChange>3.40282e+38</MinAlphaChange>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
+    <Kernel KernelType="Gaussian">
+        <LengthScale>1</LengthScale>
+        <UseBias>True</UseBias>
+        <PolynomialPower>4</PolynomialPower>
+    </Kernel>
+    <InputItems>
+        <MRVMItem Name="CombinedInputs" type="RealArrayMRVMItem">
+            <Properties>
+                <Property Name="ReadFromFile">true</Property>
+            </Properties>
+            <TrainingValues>
+            <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/realarray.csv</Value>
+             </TrainingValues>
+             <ForecastValues>
+            <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/realarray.1.csv</Value>
+            </ForecastValues>
+        </MRVMItem>
+    </InputItems>
+    <OutputItems>
+        <MRVMItem name="Rings" type="RealMRVMItem">
+            <Properties>
+                <Property Name="ReadFromFile">true</Property>
+            </Properties>
+            <TrainingValues>
+               <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/rings.csv</Value>
+            </TrainingValues>
+            <ForecastValues>
+               <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/rings_out.csv</Value>
+            </ForecastValues>
+            <ForecastUncertaintyValues>
+                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/rings_uncert.csv</Value>
+            </ForecastUncertaintyValues>
+        </MRVMItem>
+        <MRVMItem name="Sex" type="CategoricalMRVMItem">
+            <Properties>
+                <Property Name="ReadFromFile">true</Property>
+            </Properties>
+            <Categories>
+                <Category Name="M">1</Category>
+                <Category Name="F">2</Category>
+                <Category Name="I">3</Category>
+            </Categories>
+            <TrainingValues>
+               <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/sex.csv</Value>
+            </TrainingValues>
+            <ForecastValues>
+               <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/sex_out.csv</Value>
+            </ForecastValues>
+            <ForecastUncertaintyValues>
+                 <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/sex_uncert.csv</Value>
+            </ForecastUncertaintyValues>
+        </MRVMItem>
+    </OutputItems>
+</MRVM>
