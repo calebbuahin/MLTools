@@ -1,5 +1,5 @@
-//#include <headers/stdafx.h>
-//#include <headers/mrvm.h>
+//#include <include/stdafx.h>
+//#include <include/mrvm.h>
 //#include <QDebug>
 
 //CategoricalRaster::CategoricalRaster(MRVMItem::IOType iotype, const QString& name)

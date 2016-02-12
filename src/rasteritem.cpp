@@ -1,5 +1,5 @@
-#include <headers/stdafx.h>
-#include <headers/mrvm.h>
+#include <include/stdafx.h>
+#include <include/mrvm.h>
 
 RasterItem::RasterItem()
 {
@@ -60,6 +60,10 @@ bool RasterItem::includeDistanceWithBootstrap() const
 QPolygonF RasterItem::boundary() const
 {
     return m_boundary;
+}
 
 
+QList<QPoint> RasterItem::sampleRasterForPointsWithinWindow(const QPoint &center)
+{
+    QList<QPoint> points
 }

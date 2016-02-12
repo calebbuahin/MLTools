@@ -1,5 +1,5 @@
-#include <headers/stdafx.h>
-#include <headers/roots.h>
+#include <include/stdafx.h>
+#include <include/roots.h>
 #include <stdlib.h>
 #include <math.h>
 #include <src/Eigen/Core>

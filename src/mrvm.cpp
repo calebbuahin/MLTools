@@ -1,8 +1,8 @@
-#include <headers/stdafx.h>
-#include <headers/mrvm.h>
+#include <include/stdafx.h>
+#include <include/mrvm.h>
+#include <include/roots.h>
 #include "QDebug"
 #include <iostream>
-#include <headers/roots.h>
 #include <QTime>
 #include <omp.h>
 #include <cmath>

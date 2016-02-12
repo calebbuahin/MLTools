@@ -28,9 +28,9 @@ LIBS += -L/usr/local/lib/ -lafopencl.3.2.2
 LIBS += -framework GDAL
 LIBS += -L/usr/local/lib/ -liomp5
 
-HEADERS += ./headers/mrvm.h \
-           ./headers/mrvm_global.h \
-           ./headers/roots.h
+HEADERS += ./include/mrvm.h \
+           ./include/mrvm_global.h \
+           ./include/roots.h
 
 PRECOMPILED_HEADER += ./headers/stdafx.h
 
