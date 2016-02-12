@@ -1,5 +1,5 @@
-#include "stdafx.h"
-#include "mrvm.h"
+#include <headers/stdafx.h>
+#include <headers/mrvm.h>
 #include <QTextStream>
 
 CategoricalMRVMItem::CategoricalMRVMItem(MRVMItem::IOType iotype, const QString& name)

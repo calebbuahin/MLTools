@@ -5,7 +5,7 @@
     <NumberOfIterations>1000</NumberOfIterations>
     <Verbose>True</Verbose>
     <Converged>False</Converged>
-    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
     <Kernel KernelType="Gaussian">
         <LengthScale>1.6</LengthScale>
         <UseBias>True</UseBias>

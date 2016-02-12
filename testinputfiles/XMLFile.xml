@@ -7,7 +7,7 @@
     <Converged>False</Converged>
     <MaxAlphaChange>4.82179</MaxAlphaChange>
     <MinAlphaChange>0.297494</MinAlphaChange>
-    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixsinglecategorical.mat</MatrixOutputFile>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixsinglecategorical.mat</MatrixOutputFile>
     <Kernel KernelType="Gaussian">
         <LengthScale>0.25</LengthScale>
         <UseBias>True</UseBias>

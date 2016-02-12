@@ -7,7 +7,7 @@
     <Converged>False</Converged>
     <MaxAlphaChange>1.17549e-38</MaxAlphaChange>
     <MinAlphaChange>3.40282e+38</MinAlphaChange>
-    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
     <Kernel KernelType="Gaussian">
         <LengthScale>1</LengthScale>
         <UseBias>True</UseBias>
@@ -19,10 +19,10 @@
                 <Property Name="ReadFromFile">true</Property>
             </Properties>
             <TrainingValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/realarray.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/realarray.csv</Value>
             </TrainingValues>
             <ForecastValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/realarray.1.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/realarray.1.csv</Value>
             </ForecastValues>
             <ForecastUncertaintyValues/>
         </MRVMItem>
@@ -37,13 +37,13 @@
                 <Property Name="ReadFromFile">true</Property>
             </Properties>
             <TrainingValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/rings.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/rings.csv</Value>
             </TrainingValues>
             <ForecastValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/rings_out.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/rings_out.csv</Value>
             </ForecastValues>
             <ForecastUncertaintyValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/rings_uncert.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/rings_uncert.csv</Value>
             </ForecastUncertaintyValues>
         </MRVMItem>
         <MRVMItem name="Sex" type="CategoricalMRVMItem">
@@ -56,13 +56,13 @@
                 <Category Name="M">1</Category>
             </Categories>
             <TrainingValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/sex.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/sex.csv</Value>
             </TrainingValues>
             <ForecastValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/sex_out.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/sex_out.csv</Value>
             </ForecastValues>
             <ForecastUncertaintyValues>
-                <Value>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/sex_uncert.csv</Value>
+                <Value>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/sex_uncert.csv</Value>
             </ForecastUncertaintyValues>
         </MRVMItem>
     </OutputItems>

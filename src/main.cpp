@@ -1,10 +1,10 @@
+#include <headers/stdafx.h>
+#include <headers/mrvm.h>
 #include <QtCore/QCoreApplication>
-#include "mrvm.h"
 #include <iostream>
 #include <cstdio>
 #include <QFileInfo>
 #include <arrayfire.h>
-#include <roots.h>
 
 using namespace std;
 using namespace af;
@@ -12,170 +12,170 @@ using namespace af;
 
 int main(int argc, char *argv[])
 {
-  bool hasCheckedArgs = false;
+    bool hasCheckedArgs = false;
 
-  while (true)
+    while (true)
     {
-      std::vector<QString> arguments;
+        std::vector<QString> arguments;
 
-      if(!hasCheckedArgs && argc > 1)
+        if(!hasCheckedArgs && argc > 1)
         {
-          for(int i = 1; i < argc ; i++)
+            for(int i = 1; i < argc ; i++)
             {
-              arguments.push_back(QString(argv[i]));
+                arguments.push_back(QString(argv[i]));
             }
 
-          hasCheckedArgs = true;
+            hasCheckedArgs = true;
         }
-      else
+        else
         {
-          cout << "Enter command: " ;
-          std::string line;
-          std::getline(std::cin, line);
+            cout << "Enter command: " ;
+            std::string line;
+            std::getline(std::cin, line);
 
-          cout << endl;
+            cout << endl;
 
-          std::istringstream liness(line);
+            std::istringstream liness(line);
 
-          std::string command;
+            std::string command;
 
-          while (liness >> command)
+            while (liness >> command)
             {
-              QString qcommand = QString::fromStdString(command);
+                QString qcommand = QString::fromStdString(command);
 
-              if(qcommand[0] == '\"' || qcommand[0] == '\'')
+                if(qcommand[0] == '\"' || qcommand[0] == '\'')
                 {
-                  qcommand = qcommand.remove(0,1);
+                    qcommand = qcommand.remove(0,1);
                 }
 
-              if(qcommand[qcommand.length() -1] == '\"' || qcommand[qcommand.length() -1] == '\'')
+                if(qcommand[qcommand.length() -1] == '\"' || qcommand[qcommand.length() -1] == '\'')
                 {
-                  qcommand = qcommand.remove(qcommand.length()-1,1);
+                    qcommand = qcommand.remove(qcommand.length()-1,1);
                 }
 
-              arguments.push_back(qcommand);
+                arguments.push_back(qcommand);
             }
 
-          cout << endl;
+            cout << endl;
         }
 
-      if(arguments.size())
+        if(arguments.size())
         {
-          QString command = arguments[0];
+            QString command = arguments[0];
 
-          if(!command.compare("-help" , Qt::CaseInsensitive))
+            if(!command.compare("-help" , Qt::CaseInsensitive))
             {
-              cout << "-run [InputFilePath]" << endl;
-              cout << "Example -run /users/curl/project.xml" << endl;
-              cout << endl;
-              cout << "-mrvmitem [MRVMItemType]" << endl;
-              cout << "Produces the xml signature of MRVMItem xml" << endl;
-              cout << "Example -mrvmitem RealMRVMItem" << endl;
-              cout << endl;
-              cout << "c" << endl;
-              cout << "Close the program" << endl;
+                cout << "-run [InputFilePath]" << endl;
+                cout << "Example -run /users/curl/project.xml" << endl;
+                cout << endl;
+                cout << "-mrvmitem [MRVMItemType]" << endl;
+                cout << "Produces the xml signature of MRVMItem xml" << endl;
+                cout << "Example -mrvmitem RealMRVMItem" << endl;
+                cout << endl;
+                cout << "c" << endl;
+                cout << "Close the program" << endl;
 
             }
-          else if(!command.compare("-run" , Qt::CaseInsensitive))
+            else if(!command.compare("-run" , Qt::CaseInsensitive))
             {
-              if(arguments.size() == 2)
+                if(arguments.size() == 2)
                 {
 
-                  QString filePath = arguments[1];
+                    QString filePath = arguments[1];
 
-                  QFileInfo inputFile = QFileInfo(filePath);
+                    QFileInfo inputFile = QFileInfo(filePath);
 
-                  if (QFile::exists(filePath))
+                    if (QFile::exists(filePath))
                     {
 
-                      cout << "Reading input file :" << filePath.toStdString() << endl;
+                        cout << "Reading input file :" << filePath.toStdString() << endl;
 
-                      MRVM mRVMModel(inputFile);
+                        MRVM mRVMModel(inputFile);
 
-                      cout << "Finished reading input file :" << filePath.toStdString() << endl;
+                        cout << "Finished reading input file :" << filePath.toStdString() << endl;
 
-                      cout << "Running simulation..."<< endl;
+                        cout << "Running simulation..."<< endl;
 
-                      mRVMModel.start();
+                        mRVMModel.start();
 
-                      cout << "Finished simulation..."<< endl;
+                        cout << "Finished simulation..."<< endl;
 
                     }
-                  else
+                    else
                     {
-                      cout << "A valid file path must be specified after -run" << endl;
+                        cout << "A valid file path must be specified after -run" << endl;
                     }
                 }
-              else
+                else
                 {
-                  cout << "A valid file path must be specified after -run" << endl;
+                    cout << "A valid file path must be specified after -run" << endl;
                 }
             }
-          else if(!command.compare("-mrvmitem"))
+            else if(!command.compare("-mrvmitem"))
             {
-              if(arguments.size() == 2)
+                if(arguments.size() == 2)
                 {
-                  MRVMItem* item = nullptr;
+                    MRVMItem* item = nullptr;
 
-                  if(!arguments[1].compare("RealMRVMItem" , Qt::CaseInsensitive))
+                    if(!arguments[1].compare("RealMRVMItem" , Qt::CaseInsensitive))
                     {
-                      item = new RealMRVMItem();
+                        item = new RealMRVMItem();
                     }
-                  else if(!arguments[1].compare("RealArrayMRVMItem" , Qt::CaseInsensitive))
+                    else if(!arguments[1].compare("RealArrayMRVMItem" , Qt::CaseInsensitive))
                     {
-                      item = new RealArrayMRVMItem();
+                        item = new RealArrayMRVMItem();
                     }
-                  else if(!arguments[1].compare("CategoricalMRVMItem" , Qt::CaseInsensitive))
+                    else if(!arguments[1].compare("CategoricalMRVMItem" , Qt::CaseInsensitive))
                     {
-                      item = new CategoricalMRVMItem();
-                      QMap<QString,int> test;
-                      test["Category1"] = 1;
-                      test["Category2"] = 2;
-                      test["Category3"] = 3;
+                        item = new CategoricalMRVMItem();
+                        QMap<QString,int> test;
+                        test["Category1"] = 1;
+                        test["Category2"] = 2;
+                        test["Category3"] = 3;
 
-                      ((CategoricalMRVMItem*) item)->setCategories(test);
+                        ((CategoricalMRVMItem*) item)->setCategories(test);
                     }
-                  else if(!arguments[1].compare("RealRaster" , Qt::CaseInsensitive))
+                    else if(!arguments[1].compare("RealRaster" , Qt::CaseInsensitive))
                     {
-                      //item = new RealRaster();
+                        //item = new RealRaster();
                     }
-                  else if(!arguments[1].compare("CategoricalRaster" , Qt::CaseInsensitive))
+                    else if(!arguments[1].compare("CategoricalRaster" , Qt::CaseInsensitive))
                     {
-                     // item = new CategoricalRaster();
-                      QMap<QString,int> test;
-                      test["Category1"] = 1;
-                      test["Category2"] = 2;
-                      test["Category3"] = 3;
+                        // item = new CategoricalRaster();
+                        QMap<QString,int> test;
+                        test["Category1"] = 1;
+                        test["Category2"] = 2;
+                        test["Category3"] = 3;
 
-                      //((CategoricalMRVMItem*) item)->setCategories(test);
+                        //((CategoricalMRVMItem*) item)->setCategories(test);
                     }
 
-                  if(item)
+                    if(item)
                     {
-                      cout << item->toString().toStdString() << endl;
-                      delete item;
+                        cout << item->toString().toStdString() << endl;
+                        delete item;
                     }
-                  else
+                    else
                     {
-                      cout << "Specify a valid MRVMItem e.g., RealMRVMItem after -mrvmitem" << endl;
+                        cout << "Specify a valid MRVMItem e.g., RealMRVMItem after -mrvmitem" << endl;
                     }
 
 
                 }
-              else
+                else
                 {
-                  cout << "Specify a valid MRVMItem e.g., RealMRVMItem after -mrvmitem" << endl;
+                    cout << "Specify a valid MRVMItem e.g., RealMRVMItem after -mrvmitem" << endl;
                 }
 
             }
-          else if(!command.compare("c"))
+            else if(!command.compare("c" , Qt::CaseInsensitive))
             {
-              break;
+                break;
             }
         }
     }
 
-  return 0;
+    return 0;
 }
 
 

@@ -5,7 +5,7 @@
     <NumberOfIterations>0</NumberOfIterations>
     <Verbose>True</Verbose>
     <Converged>False</Converged>
-    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixluse.txt</MatrixOutputFile>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixluse.txt</MatrixOutputFile>
     <Kernel KernelType="Gaussian">
         <LengthScale>1</LengthScale>
         <UseBias>True</UseBias>

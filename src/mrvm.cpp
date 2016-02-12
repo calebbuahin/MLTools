@@ -1,10 +1,10 @@
-#include "stdafx.h"
-#include "mrvm.h"
+#include <headers/stdafx.h>
+#include <headers/mrvm.h>
 #include "QDebug"
 #include <iostream>
-#include "roots.h"
+#include <headers/roots.h>
 #include <QTime>
-#include <libiomp/omp.h>
+#include <omp.h>
 #include <cmath>
 #include <assert.h>
 using namespace std;
@@ -165,7 +165,7 @@ void MRVM::saveProject()
 {
     QFile file(m_file.absoluteFilePath());
 
-    if(file.open(QIODevice::WriteOnly))
+    if(file.open(QIODevice::ReadWrite))
     {
         QXmlStreamWriter writer(&file);
         writer.setAutoFormatting(true);
@@ -201,12 +201,14 @@ void MRVM::saveProject()
 
         writer.writeTextElement("MinAlphaChange", QString::number(m_minChangeAlpha));
 
-        af::saveArray("InputMatrix",m_inputMatrix, m_matrixOutputFile.toStdString().c_str());
+        af::saveArray("InputMatrix", m_inputMatrix, m_matrixOutputFile.toStdString().c_str());
+
+        af::saveArray("TargetMatrix",m_targetMatrix, m_matrixOutputFile.toStdString().c_str(), true);
 
         af::saveArray("Used",m_used, m_matrixOutputFile.toStdString().c_str(),true);
 
         af::saveArray("Alpha",m_alpha, m_matrixOutputFile.toStdString().c_str(),true);
-        \
+
         af::saveArray("InverseSigma",m_invSigma, m_matrixOutputFile.toStdString().c_str(),true);
 
         af::saveArray("Omega",m_omega, m_matrixOutputFile.toStdString().c_str(),true);
@@ -268,64 +270,51 @@ void MRVM::saveProject()
 
         writer.writeEndElement();
 
+        int usedCount = m_used.dims(0);
+
+        if(usedCount)
+        {
+            char* usedData = m_used.host<char>();
+
+            writer.writeStartElement("RelevantVectors");
+
+            for(int i = 0 ; i < usedCount ; i++ )
+            {
+                if(usedData[i])
+                    writer.writeTextElement("Vector",QString::number(i+1));
+            }
+
+            delete[] usedData;
+
+            writer.writeEndElement();
+        }
+
         if(m_inputItems.size() > 0)
         {
             writer.writeStartElement("InputItems");
 
-            for(QMap<QString,MRVMItem*>::iterator it = m_inputItems.begin() ;
-                it != m_inputItems.end() ;
-                it++)
+            for(QMap<QString,MRVMItem*>::iterator it = m_inputItems.begin();
+                it != m_inputItems.end(); it++)
             {
                 MRVMItem* item = it.value();
                 item->writeXML(writer);
             }
 
-
-            int usedCount = m_used.dims(0);
-
-            if(usedCount)
-            {
-                //  af_print(m_used);
-
-                // af_dtype typess = m_used.type();
-
-                // std::cout << typess << endl;
-
-                char* usedData = m_used.host<char>();
-
-                writer.writeStartElement("RelevantVectors");
-
-                for(int i = 0 ; i < usedCount ; i++ )
-                {
-                    if(usedData[i])
-                        writer.writeTextElement("Vector",QString::number(i+1));
-                }
-
-                delete[] usedData;
-
-                writer.writeEndElement();
-            }
-
-
             writer.writeEndElement();
         }
-
 
         if(m_outputItems.size() > 0)
         {
             writer.writeStartElement("OutputItems");
 
             for(QMap<QString,MRVMItem*>::iterator it = m_outputItems.begin() ;
-                it !=  m_outputItems.end() ;
-                it ++)
+                it !=  m_outputItems.end(); it ++)
             {
                 MRVMItem* item = it.value();
                 item->writeXML(writer);
             }
-
             writer.writeEndElement();
         }
-
 
         writer.writeEndElement();
         writer.writeEndDocument();
@@ -356,7 +345,6 @@ void MRVM::start()
 
 void MRVM::performTraining()
 {
-
     switch (algmode)
     {
     case 0:
@@ -375,14 +363,13 @@ void MRVM::mrvm()
     timer.start();
 
     m_inputMatrix = getInputMatrix();
+    m_targetMatrix = getOutputMatrix();
 
     if(m_verbose)
     {
         af_print(m_inputMatrix);
         cout << endl;
     }
-
-    m_targetMatrix = getOutputMatrix();
 
     if(m_verbose)
     {
@@ -440,19 +427,24 @@ void MRVM::mrvm()
 
         af::array allAlphaInf = af::allTrue(mask == 0);
 
-#pragma omp parallel for
-        for(int i = 0 ; i <  N+1; i++)
+        int maxN = N+1;
+
+        bool allAlphaInfBool = allTrue<bool>(allAlphaInf > 0);
+
+
+        for(int i = 0 ; i <  maxN; i++)
         {
-            printf("index = %d ; thread number = %d \n" , i , omp_get_thread_num());
+            af::array phispani = phi(span, i);
+            af::array phiSq = af::matmul(phispani.T(),phispani);
 
-            af::array phiSq = af::matmul(phi(span,i).T(),phi(span,i));
-
-            if(af::allTrue<bool>(allAlphaInf > 0))
+            if(allAlphaInfBool)
             {
                 for(int j = 0 ; j < V ; j++)
                 {
-                    sPrime(i,j) = beta(j) * phiSq;
-                    qPrime(i,j) = beta(j) * matmul(phi(span,i).T(),m_targetMatrix(span,j));
+                    af::array sp = beta(j) * phiSq;
+                    af::array qp = beta(j) * matmul(phispani.T(),m_targetMatrix(span,j));
+                    sPrime(i,j) = sp;
+                    qPrime(i,j) = qp;
                 }
             }
             else
@@ -461,17 +453,19 @@ void MRVM::mrvm()
                 {
                     af::array power = af::pow(beta(j),2.0);
                     float* vvv = power.host<float>();
-                    af::array temp  = vvv[0] * matmul(phi(span,i).T(),phiSigmaPhi(span,span,j)) ;
+                    af::array temp  = vvv[0] * matmul(phispani.T(),phiSigmaPhi(span,span,j)) ;
                     delete[] vvv;
-                    af::array mop = beta(j) * phiSq;
-                    af::array mop1 = matmul(temp,phi(span,i));
-                    sPrime(i,j) = mop - mop1;
-                    qPrime(i,j) = beta(j) * matmul(phi(span,i).T(),m_targetMatrix(span,j)) - matmul(temp,m_targetMatrix(span,j));
+
+                    af::array sp =  (beta(j) * phiSq) - matmul(temp,phispani);
+                    af::array qp = beta(j) * matmul(phispani.T(),m_targetMatrix(span,j)) - matmul(temp,m_targetMatrix(span,j));
+                    sPrime(i,j) = sp;
+                    qPrime(i,j) = qp ;
                 }
             }
 
             if (allTrue<bool>(mask(i) == 0))
             {
+
                 s(i,span) = sPrime(i,span);
                 q(i,span) = qPrime(i,span);
             }
@@ -484,6 +478,8 @@ void MRVM::mrvm()
                 delete[] tempf;
             }
         }
+
+        //  cout << "  Time elapsed: " <<  timer.elapsed() * 1.0/1000.0 << " s"<< endl;
 
         af::array deltaL = af::constant(af::NaN, N+1,1);
         af::array task = af::constant(0,N+1,1);
@@ -526,8 +522,8 @@ void MRVM::mrvm()
 
             af::array sumPolyCoeff = af::sum(polyCoeff);
 
-            af_print(polyCoeff);
-            af_print(sumPolyCoeff);
+            //af_print(polyCoeff);
+            //  af_print(sumPolyCoeff);
 
             if(allTrue<bool>(sumPolyCoeff(0) != 0))
             {
@@ -667,7 +663,6 @@ void MRVM::mrvm()
         if(m_numberOfIterations != 0)
         {
 
-#pragma omp parallel for
             for(int j = 0 ; j < V; j++)
             {
 
@@ -757,8 +752,6 @@ void MRVM::mrvm()
 
         af::array PhiMaskPhiMask = matmul(PhiMask.T(), PhiMask);
 
-
-#pragma omp parallel for
         for(int j = 0 ; j < V ; j++)
         {
             af::array almask = m_alpha(mask);
@@ -897,6 +890,8 @@ void MRVM::fmrvm()
 void MRVM::performRegression()
 {
     af::array noise;
+    N = m_targetMatrix.dims(0);
+    V = m_targetMatrix.dims(1);
 
     if(m_omega.dims(0) > 1)
     {
@@ -927,20 +922,10 @@ void MRVM::performRegression()
                 cout << endl;
             }
 
+
             af::array varWeight = constant(0.0,inputArray.dims(0),V);
             af::array phi = m_kernel.calculateKernel(inputArray , m_inputMatrix);
 
-            if(m_verbose)
-            {
-                af_print(phi);
-                cout << endl;
-            }
-
-            if(m_verbose)
-            {
-                af_print(m_used);
-                cout << endl;
-            }
 
             af::array usedIndices = af::where( m_used == 1.0);
             af::array phiUsed = phi(span, usedIndices);
@@ -976,8 +961,8 @@ void MRVM::performRegression()
                 tempNoise(f,span) = noise;
             }
 
-            af_print(tempNoise);
-            af_print(varWeight);
+            //            af_print(tempNoise);
+            //            af_print(varWeight);
 
             af::array std = af::sqrt(tempNoise + varWeight);
 
@@ -1004,8 +989,7 @@ void MRVM::readProject()
 
     if(file.open(QIODevice::ReadOnly))
     {
-        QXmlStreamReader xmlReader(& file);
-
+        QXmlStreamReader xmlReader(&file);
 
         while(!xmlReader.isEndDocument() && !xmlReader.hasError())
         {
@@ -1127,10 +1111,12 @@ void MRVM::readProject()
                             
                             if(fileInfo.exists())
                             {
-                                
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "InputMatrix") != -1)
-                                    m_inputMatrix = readArray(m_matrixOutputFile.toStdString().c_str() , "InputMatrix");
+                                    m_inputMatrix = readArray(m_matrixOutputFile.toStdString().c_str(), "InputMatrix");
                                 
+                                if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "TargetMatrix") != -1)
+                                    m_targetMatrix = readArray(m_matrixOutputFile.toStdString().c_str() , "TargetMatrix");
+
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "Used") != -1)
                                     m_used = readArray(m_matrixOutputFile.toStdString().c_str() , "Used");
                                 
@@ -1298,7 +1284,6 @@ void MRVM::readProject()
 
         validateInputs();
 
-        file.flush();
         file.close();
     }
 }
@@ -1344,13 +1329,13 @@ MRVMItem* MRVM::readMRVMItem(MRVMItem::IOType iotype, QXmlStreamReader& xmlReade
         }
         else if(!type.compare("RealRaster", Qt::CaseInsensitive))
         {
-            item = new RealRaster(iotype, name);
-            item->readXML(xmlReader);
+//            item = new RealRaster(iotype, name);
+//            item->readXML(xmlReader);
         }
         else if(!type.compare("CategoricalRaster", Qt::CaseInsensitive))
         {
-            item = new CategoricalRaster(iotype, name);
-            item->readXML(xmlReader);
+//            item = new CategoricalRaster(iotype, name);
+//            item->readXML(xmlReader);
         }
     }
 
@@ -1363,24 +1348,40 @@ void MRVM::validateInputs()
     {
         m_numInputCols = ioValuesColumnCount();
         m_numOutputCols = ioValuesColumnCount(false);
-        m_numInputTrainingRows = ioValuesRowCount(m_maxNumRowsPerInputValue);
-        m_numInputForecastRows = ioValuesRowCount(m_maxNumRowsPerInputValue, true, false);
-        m_numOutputTrainingRows = ioValuesRowCount(m_maxNumRowsPerOutputValue,false);
 
-        ASSERT(m_maxNumRowsPerInputValue == m_maxNumRowsPerOutputValue , "Number of rows per value for inputs and outputs must be equal");
+        m_numInputTrainingRows = ioValuesRowCount(m_maxNumRowsPerTrainingValue, true, true);
+        int tempMaxNumRowsPerTrainingValue;
+        m_numOutputTrainingRows = ioValuesRowCount(tempMaxNumRowsPerTrainingValue,false, true);
 
-        int numberOfTrainingValues = m_inputItems.first()->numTrainingValues();
-        int numberOfForecastValues = m_inputItems.first()->numForecastValues();
+        ASSERT(m_numInputTrainingRows == m_numOutputTrainingRows , "Number of input training rows must be equal to number of output training rows");
+        ASSERT(m_maxNumRowsPerTrainingValue == tempMaxNumRowsPerTrainingValue, "Max number of rows per input training value must be equal to max number of rows per output training value");
+
+
+        m_numInputForecastRows = ioValuesRowCount(m_maxNumRowsPerForecastValue,true, false);
+        int tempMaxNumRowsPerForecastValue;
+        m_numOutputForecastRows = ioValuesRowCount(tempMaxNumRowsPerForecastValue,false, false);
+
+        ASSERT(m_numInputForecastRows == m_numOutputForecastRows , "Number of input forecast rows must be equal to number of output training rows");
+        ASSERT(m_maxNumRowsPerForecastValue == tempMaxNumRowsPerForecastValue, "Max number of rows per input forecast value must be equal to max number of rows per output forecast value");
+
+
+        m_numberOfTrainingValues = m_inputItems.first()->numTrainingValues();
+        m_numberOfForecastValues = m_inputItems.first()->numForecastValues();
 
 
         for(QMap<QString,MRVMItem*>::iterator it = m_inputItems.begin() ; it != m_inputItems.end() ; it++)
         {
             MRVMItem* item = it.value();
 
-            ASSERT(item->numTrainingValues() == numberOfTrainingValues, "Number of training values are not equal for all items" );
-            ASSERT(item->numForecastValues() == numberOfForecastValues, "Number of forecast values are not equal for all items");
+            ASSERT(item->numTrainingValues() == m_numberOfTrainingValues, "Number of training values are not equal for all items" );
+            ASSERT(item->numForecastValues() == m_numberOfForecastValues, "Number of forecast values are not equal for all items");
 
-            if(item->numRowsPerValue() != 1 && item->numRowsPerValue() != m_maxNumRowsPerInputValue)
+            if(item->numRowsPerTrainingValue() != 1 && item->numRowsPerTrainingValue() != m_maxNumRowsPerTrainingValue)
+            {
+                ASSERT(false, "Number of items from row must be 1 or all values greater than 1 must be equal");
+            }
+
+            if(item->numRowsPerForecastValue() != 1 && item->numRowsPerForecastValue() != m_maxNumRowsPerForecastValue)
             {
                 ASSERT(false, "Number of items from row must be 1 or all values greater than 1 must be equal");
             }
@@ -1389,9 +1390,16 @@ void MRVM::validateInputs()
         for(QMap<QString,MRVMItem*>::iterator it = m_outputItems.begin() ; it != m_outputItems.end() ; it++)
         {
             MRVMItem* item = it.value();
-            ASSERT(item->numTrainingValues() == numberOfTrainingValues, "Number of training values are not equal for all items" );
 
-            if(item->numRowsPerValue() != 1 && item->numRowsPerValue() != m_maxNumRowsPerOutputValue)
+            ASSERT(item->numTrainingValues() == m_numberOfTrainingValues, "Number of training values are not equal for all items" );
+            ASSERT(item->numForecastValues() == m_numberOfForecastValues, "Number of forecast values are not equal for all items");
+
+            if(item->numRowsPerTrainingValue() != 1 && item->numRowsPerTrainingValue() != m_maxNumRowsPerTrainingValue)
+            {
+                ASSERT(false, "Number of items from row must be 1 or all values greater than 1 must be equal");
+            }
+
+            if(item->numRowsPerForecastValue() != 1 && item->numRowsPerForecastValue() != m_maxNumRowsPerForecastValue)
             {
                 ASSERT(false, "Number of items from row must be 1 or all values greater than 1 must be equal");
             }
@@ -1423,41 +1431,74 @@ int MRVM::ioValuesColumnCount(bool input) const
     return id;
 }
 
-int MRVM::ioValuesRowCount(int &  maxrowsPerValue, bool input,  bool training) const
+int MRVM::ioValuesRowCount(int & maxrowsPerValue, bool input,  bool training) const
 {
     maxrowsPerValue = 1;
 
-
-    for(QMap<QString,MRVMItem*>::const_iterator it = m_inputItems.begin();
-        it !=  m_inputItems.end() ; it++)
+    if(training)
     {
-        MRVMItem* item = it.value();
+        for(QMap<QString,MRVMItem*>::const_iterator it = m_inputItems.begin();
+            it !=  m_inputItems.end() ; it++)
+        {
+            MRVMItem* item = it.value();
 
-        if(maxrowsPerValue > 1 && item->numRowsPerValue() > maxrowsPerValue)
-        {
-            ASSERT(false, "Error number of rows per value is inconsistent");
+            if(maxrowsPerValue > 1 && item->numRowsPerTrainingValue() > maxrowsPerValue)
+            {
+                ASSERT(false, "Error number of rows per value is inconsistent");
+            }
+            else
+            {
+                maxrowsPerValue = item->numRowsPerTrainingValue();
+            }
         }
-        else
+
+        for(QMap<QString,MRVMItem*>::const_iterator it = m_outputItems.begin();
+            it !=  m_outputItems.end() ; it++)
         {
-            maxrowsPerValue = item->numRowsPerValue();
+            MRVMItem* item = it.value();
+
+            if(maxrowsPerValue > 1 && item->numRowsPerTrainingValue() > maxrowsPerValue)
+            {
+                ASSERT(false, "Error number of rows per value is inconsistent");
+            }
+            else
+            {
+                maxrowsPerValue = item->numRowsPerTrainingValue();
+            }
         }
     }
-
-    for(QMap<QString,MRVMItem*>::const_iterator it = m_outputItems.begin();
-        it !=  m_outputItems.end() ; it++)
+    else
     {
-        MRVMItem* item = it.value();
+        for(QMap<QString,MRVMItem*>::const_iterator it = m_inputItems.begin();
+            it !=  m_inputItems.end() ; it++)
+        {
+            MRVMItem* item = it.value();
 
-        if(maxrowsPerValue > 1 && item->numRowsPerValue() > maxrowsPerValue)
-        {
-            ASSERT(false, "Error number of rows per value is inconsistent");
+            if(maxrowsPerValue > 1 && item->numRowsPerForecastValue() > maxrowsPerValue)
+            {
+                ASSERT(false, "Error number of rows per value is inconsistent");
+            }
+            else
+            {
+                maxrowsPerValue = item->numRowsPerForecastValue();
+            }
         }
-        else
+
+        for(QMap<QString,MRVMItem*>::const_iterator it = m_outputItems.begin();
+            it !=  m_outputItems.end() ; it++)
         {
-            maxrowsPerValue = item->numRowsPerValue();
+            MRVMItem* item = it.value();
+
+            if(maxrowsPerValue > 1 && item->numRowsPerForecastValue() > maxrowsPerValue)
+            {
+                ASSERT(false, "Error number of rows per value is inconsistent");
+            }
+            else
+            {
+                maxrowsPerValue = item->numRowsPerForecastValue();
+            }
         }
     }
-
 
     if(input)
     {
@@ -1469,7 +1510,6 @@ int MRVM::ioValuesRowCount(int &  maxrowsPerValue, bool input,  bool training) c
         {
             return m_inputItems.first()->numForecastValues() * maxrowsPerValue;
         }
-
     }
     else
     {
@@ -1481,14 +1521,11 @@ int MRVM::ioValuesRowCount(int &  maxrowsPerValue, bool input,  bool training) c
         {
             return m_outputItems.first()->numForecastValues() * maxrowsPerValue;
         }
-
     }
-
 }
 
 af::array MRVM::getInputMatrix(bool training)
 {
-
     af::array values;
 
     if(training)
@@ -1498,7 +1535,7 @@ af::array MRVM::getInputMatrix(bool training)
 
         for(int r = 0 ; r < numTrainingValues ; r++)
         {
-            af::seq row(r * m_maxNumRowsPerInputValue, r * m_maxNumRowsPerInputValue + m_maxNumRowsPerInputValue -1);
+            af::seq row(r * m_maxNumRowsPerTrainingValue, r * m_maxNumRowsPerTrainingValue + m_maxNumRowsPerTrainingValue -1);
             values(row,span) = getInputMatrix(r, training);
         }
     }
@@ -1509,12 +1546,11 @@ af::array MRVM::getInputMatrix(bool training)
 
         for(int r = 0 ; r < numForecastValues ; r++)
         {
-            af::seq row(r * m_maxNumRowsPerInputValue, r * m_maxNumRowsPerInputValue + m_maxNumRowsPerInputValue -1);
+            af::seq row(r * m_maxNumRowsPerForecastValue, r * m_maxNumRowsPerForecastValue + m_maxNumRowsPerForecastValue -1);
             values(row,span) = getInputMatrix(r, training);
         }
 
     }
-
 
     return values;
 }
@@ -1522,11 +1558,12 @@ af::array MRVM::getInputMatrix(bool training)
 af::array MRVM::getInputMatrix(int valueIndex, bool training)
 {
 
-    af::array values(m_maxNumRowsPerInputValue, m_numInputCols);
+    af::array values;
     int ccol = 0;
 
     if(training)
     {
+        values = af::array(m_maxNumRowsPerTrainingValue, m_numInputCols);
 
         for(QMap<QString,MRVMItem*>::iterator it = m_inputItems.begin();
             it != m_inputItems.end(); it ++)
@@ -1535,11 +1572,11 @@ af::array MRVM::getInputMatrix(int valueIndex, bool training)
             int ecol = ccol + item->columnCount();
             af::seq colSeq = af::seq(ccol, ecol-1);
 
-            if(item->numRowsPerValue() == 1)
+            if(item->numRowsPerTrainingValue() == 1)
             {
                 af::array temp = item->trainingValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerInputValue ; rr++)
+                for(int rr = 0 ; rr < m_maxNumRowsPerTrainingValue ; rr++)
                 {
                     values(rr , colSeq) = temp;
                 }
@@ -1554,6 +1591,8 @@ af::array MRVM::getInputMatrix(int valueIndex, bool training)
     }
     else
     {
+        values = af::array(m_maxNumRowsPerForecastValue, m_numInputCols);
+
         for(QMap<QString,MRVMItem*>::iterator it = m_inputItems.begin();
             it != m_inputItems.end(); it ++)
         {
@@ -1561,10 +1600,11 @@ af::array MRVM::getInputMatrix(int valueIndex, bool training)
             int ecol = ccol + item->columnCount();
             af::seq colSeq = af::seq(ccol, ecol-1);
 
-            if(item->numRowsPerValue() == 1)
+            if(item->numRowsPerForecastValue() == 1)
             {
                 af::array temp = item->forecastValues(valueIndex);
-                for(int rr = 0 ; rr < m_maxNumRowsPerInputValue ; rr++)
+
+                for(int rr = 0 ; rr < m_maxNumRowsPerForecastValue ; rr++)
                 {
                     values(rr , colSeq) = temp;
                 }
@@ -1577,7 +1617,6 @@ af::array MRVM::getInputMatrix(int valueIndex, bool training)
             ccol = ecol;
         }
     }
-
 
     return values;
 }
@@ -1593,8 +1632,8 @@ af::array MRVM::getOutputMatrix(bool training)
 
         for(int r = 0 ; r < numTrainingValues ; r++)
         {
-            int beg = r * m_maxNumRowsPerOutputValue;
-            int end = beg + m_maxNumRowsPerOutputValue -1;
+            int beg = r * m_maxNumRowsPerTrainingValue;
+            int end = beg + m_maxNumRowsPerTrainingValue -1;
 
             af::seq row(beg, end);
             values(row,span) = getOutputMatrix(r, training);
@@ -1602,12 +1641,12 @@ af::array MRVM::getOutputMatrix(bool training)
     }
     else
     {
-        values = af::array(m_numInputForecastRows, m_numOutputCols);
+        values = af::array(m_numOutputForecastRows, m_numOutputCols);
         int numForecastValues = m_outputItems.first()->numForecastValues();
 
         for(int r = 0 ; r < numForecastValues ; r++)
         {
-            af::seq row(r * m_maxNumRowsPerOutputValue, r * m_maxNumRowsPerOutputValue + m_maxNumRowsPerOutputValue -1);
+            af::seq row(r * m_maxNumRowsPerForecastValue, r * m_maxNumRowsPerForecastValue + m_maxNumRowsPerForecastValue -1);
             values(row,span) = getOutputMatrix(r, training);
         }
 
@@ -1619,11 +1658,12 @@ af::array MRVM::getOutputMatrix(bool training)
 af::array MRVM::getOutputMatrix(int valueIndex, bool training)
 {
 
-    af::array values(m_maxNumRowsPerOutputValue, m_numOutputCols);
+    af::array values;
     int ccol = 0;
 
     if(training)
     {
+        values = af::array(m_maxNumRowsPerTrainingValue, m_numOutputCols);
 
         for(QMap<QString,MRVMItem*>::iterator it = m_outputItems.begin();
             it != m_outputItems.end(); it ++)
@@ -1632,11 +1672,11 @@ af::array MRVM::getOutputMatrix(int valueIndex, bool training)
             int ecol = ccol + item->columnCount();
             af::seq colSeq = af::seq(ccol, ecol-1);
 
-            if(item->numRowsPerValue() == 1)
+            if(item->numRowsPerTrainingValue() == 1)
             {
                 af::array temp = item->trainingValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerOutputValue ; rr++)
+                for(int rr = 0 ; rr < m_maxNumRowsPerTrainingValue ; rr++)
                 {
                     values(rr , colSeq) = temp;
                 }
@@ -1651,6 +1691,7 @@ af::array MRVM::getOutputMatrix(int valueIndex, bool training)
     }
     else
     {
+        values = af::array(m_maxNumRowsPerForecastValue, m_numOutputCols);
 
         for(QMap<QString,MRVMItem*>::iterator it = m_outputItems.begin();
             it != m_outputItems.end(); it ++)
@@ -1659,11 +1700,11 @@ af::array MRVM::getOutputMatrix(int valueIndex, bool training)
             int ecol = ccol + item->columnCount();
             af::seq colSeq = af::seq(ccol, ecol-1);
 
-            if(item->numRowsPerValue() == 1)
+            if(item->numRowsPerForecastValue() == 1)
             {
                 af::array temp = item->forecastValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerOutputValue ; rr++)
+                for(int rr = 0 ; rr < m_maxNumRowsPerForecastValue ; rr++)
                 {
                     values(rr , colSeq) = temp;
                 }
@@ -1676,7 +1717,6 @@ af::array MRVM::getOutputMatrix(int valueIndex, bool training)
             ccol = ecol;
         }
     }
-
 
     return values;
 }

@@ -7,7 +7,7 @@
     <Converged>True</Converged>
     <MaxAlphaChange>3.5761</MaxAlphaChange>
     <MinAlphaChange>0.0153128</MinAlphaChange>
-    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixsinglelinearreal.txt</MatrixOutputFile>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixsinglelinearreal.txt</MatrixOutputFile>
     <Kernel KernelType="Gaussian">
         <LengthScale>0.1</LengthScale>
         <UseBias>True</UseBias>

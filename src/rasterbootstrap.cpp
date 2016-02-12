@@ -1,75 +1,89 @@
-#include "mrvm.h"
+#include <headers/stdafx.h>
+#include <headers/mrvm.h>
 #include <random>
 
-RasterBootstrap::RasterBootstrap()
+RasterBootstrapSampler::RasterBootstrapSampler()
 {
 
 
 }
 
 
-RasterBootstrap::~RasterBootstrap()
+RasterBootstrapSampler::~RasterBootstrapSampler()
 {
 
 }
 
-int RasterBootstrap::numSamplingWindows() const
+int RasterBootstrapSampler::numSamplingWindows() const
 {
   return m_numSampleWindows;
 }
 
-void RasterBootstrap::setNumSamplingWindows(int windowCount)
+void RasterBootstrapSampler::setNumSamplingWindows(int windowCount)
 {
   m_numSampleWindows = windowCount;
 }
 
-int RasterBootstrap::samplingWindowSize() const
+int RasterBootstrapSampler::samplingWindowSize() const
 {
   return m_samplingWindowSize;
 }
 
-void RasterBootstrap::setSamplingWindowSize(int size)
+void RasterBootstrapSampler::setSamplingWindowSize(int size)
 {
   m_samplingWindowSize = size;
 }
 
 
-bool RasterBootstrap::includeDistance() const
+bool RasterBootstrapSampler::includeDistance() const
 {
   return m_includeDistance;
 }
 
-void RasterBootstrap::setIncludeDistance(bool includedistance)
+void RasterBootstrapSampler::setIncludeDistance(bool includedistance)
 {
   m_includeDistance = includedistance;
 }
 
-QSet<RasterItem*> RasterBootstrap::rasterItems() const
+QList<QString> RasterBootstrapSampler::rasterItemNames() const
+{
+    return m_rasterItemNames;
+}
+
+QMap<QString,int> RasterBootstrapSampler::sampleSizeForRasterItem() const
+{
+    return m_sampleSizeForRasterItems;
+}
+
+QMap<QString,RasterItem*> RasterBootstrapSampler::rasterItems() const
 {
   return m_rasterItems;
 }
 
-void RasterBootstrap::addRasterItem(RasterItem *rasterItem)
+void RasterBootstrapSampler::addRasterItem(RasterItem *rasterItem)
 {
-  m_rasterItems.insert(rasterItem);
+  m_rasterItems[rasterItem->getName()] = rasterItem;
+
 }
 
-bool RasterBootstrap::removeRasterItem(RasterItem *rasteriterm)
+bool RasterBootstrapSampler::removeRasterItem(RasterItem *rasteritem)
 {
-  return m_rasterItems.remove(rasteriterm);
+  rasteritem->m_useRasterBootstrap = false;
+
+  return m_rasterItems.remove(rasteriterm->getName());
 }
 
-QMap<QString,QList<QList<QPoint>>> RasterBootstrap::sampleLocationIndexes() const
+QMap<QString,QList<QList<QPointF>>> RasterBootstrapSampler::sampleLocationIndexes() const
 {
   return  m_mrvmItemLocations;
 }
 
-QMap<QString,QList<QPoint>> RasterBootstrap::windowLocations() const
+QMap<QString,QList<QPointF>> RasterBootstrapSampler::windowLocations() const
 {
   return m_windowLocations;
 }
 
-void RasterBootstrap::sampleRasters()
+void RasterBootstrapSampler::sampleRasters()
 {
   m_mrvmItemLocations.clear();
   m_windowLocations.clear();
@@ -106,19 +120,4 @@ void RasterBootstrap::sampleRasters()
     }
 }
 
-void RasterBootstrap::setRasterItemLocations()
-{
-  for(QSet<RasterItem*>::iterator it = m_rasterItems.begin() ;
-      it != m_rasterItems.end() ; it++)
-    {
-      RasterItem* rasterItem = *it;
 
-      if(m_mrvmItemLocations.contains(rasterItem->getName()) &&
-         m_windowLocations.contains(rasterItem->getName()))
-        {
-          QList<QList<QPoint>> mrvmitems = m_mrvmItemLocations[rasterItem->getName()];
-          QList<QPoint> windowLocations = m_windowLocations[rasterItem->getName()];
-          rasterItem->setBootStrapPoints(windowLocations , mrvmitems );
-        }
-    }
-}

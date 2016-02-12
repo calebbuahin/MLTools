@@ -7,7 +7,7 @@
     <Converged>False</Converged>
     <MaxAlphaChange>9.629975</MaxAlphaChange>
     <MinAlphaChange>0.027635</MinAlphaChange>
-    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MLTools/MLToolsTesting/InputFiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
+    <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixsinglecategorical.txt</MatrixOutputFile>
     <Kernel KernelType="Laplace">
         <LengthScale>0.25</LengthScale>
         <UseBias>True</UseBias>

@@ -1,5 +1,5 @@
-#include "stdafx.h"
-#include "mrvm.h"
+#include <headers/stdafx.h>
+#include <headers/mrvm.h>
 
 //======================================================================
 
@@ -231,7 +231,12 @@ int MRVMItem::numForecastValues() const
   return m_numForecastValues;
 }
 
-int MRVMItem::numRowsPerValue() const
+int MRVMItem::numRowsPerTrainingValue() const
+{
+  return 1;
+}
+
+int MRVMItem::numRowsPerForecastValue() const
 {
   return 1;
 }

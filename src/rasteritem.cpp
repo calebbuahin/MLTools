@@ -1,4 +1,5 @@
-#include "mrvm.h"
+#include <headers/stdafx.h>
+#include <headers/mrvm.h>
 
 RasterItem::RasterItem()
 {
@@ -10,56 +11,55 @@ RasterItem::~RasterItem()
 
 }
 
-bool RasterItem::contains(const QPointF &point)
+bool RasterItem::contains(const QPointF &point, QPoint& pointIndex)
 {
-  QPoint f  = getCoordinateIndexes(point);
+    pointIndex  = getCoordinateIndexes(point);
 
-  if(f.x() < 0 || f.x() >= m_xSize || f.y() < 0 || f.y() >= m_ySize)
-    return false;
+    if(pointIndex.x() < 0 || pointIndex.x() >= m_xSize || pointIndex.y() < 0 || pointIndex.y() >= m_ySize)
+        return false;
 
-  return true;
+
+    return true;
 }
 
 bool RasterItem::isValid(const QPoint& index)
 {
-  return m_validCell[index.y() * m_xSize + index.x()];
+    return m_validCell[index.y() * m_xSize + index.x()];
 }
 
 QPointF RasterItem::getCoordinates(const QPoint& indexes) const
 {
-  QPointF p;
+    QPointF p;
 
-  p.setX( m_gcp[0] + indexes.x() * m_gcp[1] + indexes.y() * m_gcp[2]);
-  p.setY(m_gcp[3] + indexes.x() * m_gcp[4] + indexes.y() * m_gcp[5]);
+    p.setX( m_gcp[0] + indexes.x() * m_gcp[1] + indexes.y() * m_gcp[2]);
+    p.setY(m_gcp[3] + indexes.x() * m_gcp[4] + indexes.y() * m_gcp[5]);
 
-  return p;
+    return p;
 }
 
 QPoint RasterItem::getCoordinateIndexes(const QPointF &coordinates) const
 {
-  QPoint p;
+    QPoint p;
 
-  p.setY((coordinates.y() - m_gcp[3] - ((coordinates.x() - m_gcp[0]) * m_gcp[4] / m_gcp[1]))/(m_gcp[5] - ( m_gcp[2] * m_gcp[4] / m_gcp[1])));
-  p.setX((coordinates.x() - m_gcp[0]) / m_gcp[1] - (p.y() * m_gcp[2]) / m_gcp[1]);
+    p.setY((coordinates.y() - m_gcp[3] - ((coordinates.x() - m_gcp[0]) * m_gcp[4] / m_gcp[1]))/(m_gcp[5] - ( m_gcp[2] * m_gcp[4] / m_gcp[1])));
+    p.setX((coordinates.x() - m_gcp[0]) / m_gcp[1] - (p.y() * m_gcp[2]) / m_gcp[1]);
 
-  return p;
+    return p;
 }
 
-void RasterItem::setBootStrapPoints(const QList<QPoint> &centers, const QList<QList<QPoint> > &indexes)
+void RasterItem::setBootstrapPoints(const QList<QPoint> & windowCenters, int samplingWindowSize, int numSamples, bool includeDistanceWithBootstrap)
 {
-  m_bootStrapCenters = centers;
-  m_bootStrapSamplingPoints = indexes;
+
+}
+
+bool RasterItem::includeDistanceWithBootstrap() const
+{
+    return m_includeDistanceWithBootstrap;
 }
 
 QPolygonF RasterItem::boundary() const
 {
-  QVector<QPointF> bounds;
+    return m_boundary;
 
 
-  bounds.append(getCoordinates(QPoint(0,0)).toPoint());
-  bounds.append(getCoordinates(QPoint(m_xSize-1,0)).toPoint());
-  bounds.append(getCoordinates(QPoint(0,m_ySize -1)).toPoint());
-  bounds.append(getCoordinates(QPoint(m_xSize,m_ySize -1)).toPoint());
-
-  return QPolygonF(bounds);
 }
