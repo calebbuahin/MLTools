@@ -1,5 +1,8 @@
 #include <include/stdafx.h>
 #include <include/mrvm.h>
+#include <random>
+
+using namespace std;
 
 RasterItem::RasterItem()
 {
@@ -18,7 +21,6 @@ bool RasterItem::contains(const QPointF &point, QPoint& pointIndex)
     if(pointIndex.x() < 0 || pointIndex.x() >= m_xSize || pointIndex.y() < 0 || pointIndex.y() >= m_ySize)
         return false;
 
-
     return true;
 }
 
@@ -27,12 +29,27 @@ bool RasterItem::isValid(const QPoint& index)
     return m_validCell[index.y() * m_xSize + index.x()];
 }
 
+bool RasterItem::isValid(int x , int y)
+{
+    return m_validCell[y* m_xSize + x];
+}
+
 QPointF RasterItem::getCoordinates(const QPoint& indexes) const
 {
     QPointF p;
 
-    p.setX( m_gcp[0] + indexes.x() * m_gcp[1] + indexes.y() * m_gcp[2]);
+    p.setX(m_gcp[0] + indexes.x() * m_gcp[1] + indexes.y() * m_gcp[2]);
     p.setY(m_gcp[3] + indexes.x() * m_gcp[4] + indexes.y() * m_gcp[5]);
+
+    return p;
+}
+
+QPointF RasterItem::getCoordinates(int x, int y) const
+{
+    QPointF p;
+
+    p.setX(m_gcp[0] + x * m_gcp[1] + y * m_gcp[2]);
+    p.setY(m_gcp[3] + x * m_gcp[4] + y * m_gcp[5]);
 
     return p;
 }
@@ -47,14 +64,17 @@ QPoint RasterItem::getCoordinateIndexes(const QPointF &coordinates) const
     return p;
 }
 
-void RasterItem::setBootstrapPoints(const QList<QPoint> & windowCenters, int samplingWindowSize, int numSamples, bool includeDistanceWithBootstrap)
+void RasterItem::setBootstrapSamplingPoints(const QList<QPointF>& sampleLocations)
 {
+    m_sampleLocations.clear();
 
-}
+    for(int i = 0 ; i < sampleLocations.length() ; i++)
+    {
+        QPoint p = getCoordinateIndexes(sampleLocations[i]);
+        m_sampleLocations.append(p);
+    }
 
-bool RasterItem::includeDistanceWithBootstrap() const
-{
-    return m_includeDistanceWithBootstrap;
+    resetProperties();
 }
 
 QPolygonF RasterItem::boundary() const
@@ -62,8 +82,3 @@ QPolygonF RasterItem::boundary() const
     return m_boundary;
 }
 
-
-QList<QPoint> RasterItem::sampleRasterForPointsWithinWindow(const QPoint &center)
-{
-    QList<QPoint> points
-}

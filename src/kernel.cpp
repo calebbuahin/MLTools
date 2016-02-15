@@ -254,9 +254,10 @@ af::array Kernel::distanceSquared(const af::array& x , const af::array& y)
   int nx = x.dims(0);
   int ny = y.dims(0);
 
-  af::array values = af::matmul(af::sum(af::pow(x,2.0),1), af::constant(1.0,1,ny)) +
-      af::matmul(af::constant(1.0,nx,1), af::sum(af::pow(y,2.0),1).T()) -
-      2.0 * (af::matmul(x,y.T()));
+  af::array arg1 =  af::matmul(af::sum(af::pow(x,2.0),1), af::constant(1.0,1,ny));
+  af::array arg2 =  af::matmul(af::constant(1.0,nx,1), af::sum(af::pow(y,2.0),1).T());
+  af::array arg3 =  2.0 * (af::matmul(x,y.T()));
+  af::array values = arg1 + arg2 - arg3;
 
   return  values;
 }

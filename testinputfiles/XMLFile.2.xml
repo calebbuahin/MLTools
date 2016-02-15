@@ -8062,33 +8062,4 @@
         </MRVMItem>
     </OutputItems>
 </MRVM>
-/Value>
-                <Value>2.135163</Value>
-                <Value>2.313651</Value>
-                <Value>2.908071</Value>
-                <Value>2.118830</Value>
-                <Value>2.300797</Value>
-                <Value>4.646866</Value>
-                <Value>2.308822</Value>
-                <Value>2.722456</Value>
-                <Value>2.418231</Value>
-                <Value>3.641129</Value>
-                <Value>3.016301</Value>
-                <Value>3.565606</Value>
-                <Value>3.913682</Value>
-                <Value>2.515069</Value>
-                <Value>2.781710</Value>
-                <Value>3.843616</Value>
-                <Value>3.797776</Value>
-                <Value>2.436728</Value>
-                <Value>3.188267</Value>
-                <Value>3.833537</Value>
-                <Value>4.410324</Value>
-                <Value>3.163974</Value>
-                <Value>2.879652</Value>
-                <Value>3.343719</Value>
-                <Value>3.758878</Value>
-            </ForecastUncertaintyValues>
-        </MRVMItem>
-    </OutputItems>
-</MRVM>
+

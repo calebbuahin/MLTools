@@ -17,6 +17,7 @@
 #include "gdal_priv.h"
 #include "cpl_conv.h" // for CPLMalloc()
 #include <QRegularExpression>
+#include <random>
 
 #ifndef NDEBUG
 #   define ASSERT(condition, message) \
@@ -35,6 +36,8 @@
 # ifndef NUM_THREADS
 #define NUM_THREADS 4
 #endif
+
+static std::default_random_engine gen;
 
 class MRVM_EXPORT MRVMItem
 {
@@ -156,6 +159,8 @@ private:
 
     void expandListTo(QList<float>& list, int index);
 
+    void expandListTo(QList<QString>& list, int index);
+
 private:
     QList<float> m_trainingValues;
     QList<float> m_forecastValues;
@@ -201,6 +206,8 @@ private:
     void readWriteForecastUncertaintyValuesFiles(bool read = true);
 
     void expandListTo(QList<QList<float> >& list, int index);
+
+    void expandListTo(QList<QString>& list, int index);
 
 private:
     QList<QList<float> > m_trainingValues;
@@ -263,6 +270,8 @@ private:
 
     void expandListTo(QList<float>& list, int index);
 
+    void expandListTo(QList<QString>& list, int index);
+
 private:
     QList<int> m_trainingValues;
     QList<int> m_forecastValues;
@@ -291,137 +300,151 @@ public:
 
     virtual QString getName() const = 0;
 
+    virtual void resetProperties() = 0;
+
     bool contains(const QPointF& point, QPoint& pointIndex);
 
     bool isValid(const QPoint& index);
 
+    bool isValid(int i , int j);
+
     QPointF getCoordinates(const QPoint& indexes)  const;
+
+    QPointF getCoordinates(int x , int y)  const;
 
     QPoint getCoordinateIndexes(const QPointF& coordinates) const;
 
-    void setBootstrapPoints(const QList<QPoint>& windowCenters, int samplingWindowSize, int numSamples, bool includeDistance);
+    void setBootstrapSamplingPoints(const QList<QPointF>& sampleLocations);
 
-    bool includeDistanceWithBootstrap() const;
+    bool includeLocation() const;
 
     virtual QPolygonF boundary() const;
-
-private:
-    QList<QPoint> sampleRasterForPointsWithinWindow(const QPoint& center);
 
 protected:
     QPolygonF m_boundary;
     bool m_useRasterBootstrap;
-    bool m_includeDistanceWithBootstrap;
-    int m_samplingWindowSize, numSamples;
-    QList<QList<QPoint>> m_bootStrapSamplingPoints;
-    QList<QPoint> m_bootStrapCenters;
+    bool m_includeLocation;
+    QList<QPoint> m_sampleLocations;
     int m_xSize, m_ySize;
     int* m_validCell;
     float m_noData;
     GDALDriver* m_driver;
     double m_gcp[6];
     const char* m_wktproj;
-    bool m_includeDistanceWhenBootstrapSampling;
     RasterBootstrapSampler* m_rasterBootstrapSampler;
 };
 
-//class MRVM_EXPORT RealRaster : public RealArrayMRVMItem, public RasterItem
-//{
+class MRVM_EXPORT RealRaster : public RealArrayMRVMItem, public RasterItem
+{
 
-//public:
+public:
 
-//    RealRaster(IOType type = MRVMItem::Input,const QString& name ="");
+    RealRaster(IOType type = MRVMItem::Input,const QString& name ="");
 
-//    ~RealRaster();
+    ~RealRaster();
 
-//    QString getName() const override;
+    QString getName() const override;
 
-//    virtual af::array trainingValues(int row) override;
+    virtual af::array trainingValues(int row) override;
 
-//    virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+    virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
 
-//    virtual af::array forecastValues(int row) override;
+    virtual af::array forecastValues(int row) override;
 
-//    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
+    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
 
-//    virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
+    virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
 
-//    virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString) override;
+    virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString) override;
 
-//    virtual void readXML(QXmlStreamReader & xmlReader) override;
+    virtual void readXML(QXmlStreamReader & xmlReader) override;
 
-//    virtual int numRowsPerTrainingValue() const override;
+    virtual int numRowsPerTrainingValue() const override;
 
-//    virtual int numRowsPerForecastValue() const override;
+    virtual int numRowsPerForecastValue() const override;
 
-//    virtual QString type() const override;
+    virtual void resetProperties() override;
 
-//private:
+    virtual QString type() const override;
 
-//    void writeDataToRaster(const QString& filePath, const af::array& values);
+private:
 
-//    af::array readDataFromRaster(const QString& filePath);
+    void writeDataToRaster(const QString& filePath, const af::array& values);
 
-//    void readRasterProperties();
+    af::array readDataFromRaster(const QString& filePath);
 
-//    void createOutputRasters();
+    af::array readTrainingDataFromSampler(const QString& filePath);
 
-//protected:
-//    int m_numRowsPerTrainingValue;
-//    int m_numRowsPerForecastValue;
-//    int m_numValidPixels;
+    af::array readForecastDataFromSampler(const QString& filePath);
 
-//};
+    void readRasterProperties();
 
-//class MRVM_EXPORT CategoricalRaster : public CategoricalMRVMItem , public RasterItem
-//{
+    void createOutputRasters();
 
-//public:
+protected:
+    int m_numRowsPerTrainingValue;
+    int m_numRowsPerForecastValue;
+    int m_numValidPixels;
 
-//    CategoricalRaster(IOType type = MRVMItem::Input,const QString& name = "");
 
-//    ~CategoricalRaster();
+};
 
-//    QString getName() const override;
+class MRVM_EXPORT CategoricalRaster : public CategoricalMRVMItem , public RasterItem
+{
 
-//    virtual af::array trainingValues(int row) override;
+public:
 
-//    virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
+    CategoricalRaster(IOType type = MRVMItem::Input,const QString& name = "");
 
-//    virtual af::array forecastValues(int row) override;
+    ~CategoricalRaster();
 
-//    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
+    QString getName() const override;
 
-//    virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
+    virtual af::array trainingValues(int row) override;
 
-//    virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
+    virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
 
-//    virtual void readXML(QXmlStreamReader & xmlReader) override;
+    virtual af::array forecastValues(int row) override;
 
-//    virtual int numRowsPerTrainingValue() const override;
+    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
 
-//    virtual int numRowsPerForecastValue() const override;
+    virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
 
-//    virtual int columnCount() override;
+    virtual void setForecastUncertaintyValueAsString(const QList<QString>& forecastUncertaintyValuesAsString);
 
-//    virtual QString type() const override;
+    virtual void readXML(QXmlStreamReader & xmlReader) override;
 
-//private:
+    virtual int numRowsPerTrainingValue() const override;
 
-//    void writeDataToRaster(const QString& filePathForecast, const af::array& values, const QString& filePathUncertain, const af::array& uncert);
+    virtual int numRowsPerForecastValue() const override;
 
-//    af::array readDataFromRaster(const QString& filePath);
+    virtual int columnCount() override;
 
-//    void readRasterProperties();
+    virtual void resetProperties() override;
 
-//    void createOutputRasters();
+    virtual QString type() const override;
 
-//private:
-//    int m_numRowsPerTrainingValue;
-//    int m_numRowsPerForecastValue;
-//    int m_columnCount;
+private:
 
-//};
+    void writeDataToRaster(const QString& filePathForecast, const af::array& values, const QString& filePathUncertain, const af::array& uncert);
+
+    af::array readDataFromRaster(const QString& filePath);
+
+    af::array readTrainingDataFromSampler(const QString& filePath);
+
+    af::array readForecastDataFromSampler(const QString& filePath);
+
+    void readRasterProperties();
+
+    void createOutputRasters();
+
+private:
+    int m_numRowsPerTrainingValue;
+    int m_numRowsPerForecastValue;
+    int m_columnCount;
+    int m_numValidPixels;
+
+};
 
 class MRVM_EXPORT RasterBootstrapSampler
 {
@@ -431,49 +454,34 @@ public:
 
     ~RasterBootstrapSampler();
 
-    int numSamplingWindows() const;
+    int numSamples() const;
 
-    void setNumSamplingWindows(int numSamplingWindows);
-
-    int samplingWindowSize() const;
-
-    void setSamplingWindowSize(int size);
-
-    bool includeDistance() const;
-
-    void setIncludeDistance(bool includedistance);
+    void setNumSamples(int numSamples);
 
     QList<QString> rasterItemNames() const;
-
-    QMap<QString, int> sampleSizeForRasterItemPerSamplingWindow() const;
 
     QMap<QString, RasterItem*> rasterItems() const;
 
     void addRasterItem(RasterItem* rasterItem);
 
     bool removeRasterItem(RasterItem* rasteriterm);
-
-    QList<QPointF> samplingWindowCenters() const;
+    
+    QList<QPointF> samplingLocations() const;
 
     void readXML(QXmlStreamReader & xmlReader);
 
     void writeXML(QXmlStreamWriter& xmlWriter);
 
-private:
-
     void createValidWindowCenters();
 
-    void rasterItemSamplingAttributes();
+    void setRasterItemSamplingAttributes();
 
 private:
 
-    int m_numSamplingWindows;
-    int m_samplingWindowSize;
-    QMap<QString,RasterItem*> m_rasterItems;
+    int m_numSamples;
     QList<QString> m_rasterItemNames;
-    QMap<QString, QList<QList<QPointF> > > m_mrvmItemLocations;
-    QMap<QString, int> m_rasterItemSampleSize;
-    QMap<QString, QList<QPointF> > m_samplLocations;
+    QMap<QString,RasterItem*> m_rasterItems;
+    QList<QPointF> m_samplingLocations;
 
 };
 
@@ -593,9 +601,15 @@ public:
 
     bool removeOutputItem(const QString& name);
 
+    QList<RasterBootstrapSampler*> rasterBootstrapSamplers() const;
+
     QString matrixOutputFile() const;
 
     void setMatrixOutputFile(const QString& matrixOutputFile);
+
+    const af::array& inputMatrix() const;
+
+    const af::array& targetMatrix() const;
 
     const af::array& usedRelevantVectors() const;
 
@@ -621,12 +635,11 @@ public:
 
     static bool gdalRegistered();
 
-#if Q_DEBUG
-#else
 private:
-#endif
 
     void readProject();
+
+    void processRasterBootstrapSamplers();
 
     MRVMItem* readMRVMItem(MRVMItem::IOType type,  QXmlStreamReader& reader);
 
@@ -651,24 +664,21 @@ private:
                                       const af::array& qPrime, const af::array& s,
                                       const af::array& q);
 
-
-
     af::array corrcov(const af::array& cov);
 
 private:
     QMap<QString,MRVMItem*> m_inputItems, m_outputItems;
+    QList<RasterBootstrapSampler*> m_rasterBootstrapSamplers;
     af::array m_inputMatrix, m_targetMatrix , m_used , m_alpha , m_invSigma, m_omega, m_Mu ;
 
-    int m_maxNumberOfIterations = 1000 , m_numberOfIterations ;
-
-    int m_numInputCols, m_numOutputCols, m_numInputTrainingRows, m_numOutputTrainingRows,
+    int N,V, m_maxNumberOfIterations = 1000 , m_numberOfIterations,
+        m_numInputCols, m_numOutputCols, m_numInputTrainingRows, m_numOutputTrainingRows,
         m_numInputForecastRows, m_numOutputForecastRows, m_maxNumRowsPerForecastValue,
         m_maxNumRowsPerTrainingValue, m_numberOfTrainingValues, m_numberOfForecastValues;
 
 
     float m_minChangeAlpha, m_maxChangeAlpha;
     QString m_matrixOutputFile;
-    int N, V;
     QFileInfo m_file;
     QString m_name;
     MRVM::Mode m_mode;

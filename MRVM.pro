@@ -46,6 +46,6 @@ SOURCES += ./src/stdafx.cpp \
            ./src/realrastermrvmitem.cpp \
            ./src/categoricalmrvmitem.cpp \
            ./src/categoricalrastermrvmitem.cpp \
-           ./src/rasterbootstrap.cpp
+           ./src/rasterbootstrapsampler.cpp
 
 

@@ -4,7 +4,7 @@
 
 
 RealMRVMItem::RealMRVMItem(MRVMItem::IOType iotype, const QString& name)
-  :MRVMItem(iotype, name)
+    :MRVMItem(iotype, name)
 {
 
 }
@@ -16,276 +16,287 @@ RealMRVMItem::~RealMRVMItem()
 
 af::array RealMRVMItem::trainingValues(int row)
 {
-  af::array value(1,1);
+    af::array value(1,1);
 
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      value = m_trainingValuesAsString[row].toDouble();
+        value = m_trainingValuesAsString[row].toDouble();
     }
-  else
+    else
     {
-      value = m_trainingValues[row];
+        value = m_trainingValues[row];
     }
 
-  return value;
+    return value;
 }
 
 void RealMRVMItem::setTrainingValuesAsString(const QList<QString>& trainingValues)
 {
-  this->m_trainingValuesAsString.clear();
+    this->m_trainingValuesAsString.clear();
 
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      bool convert = false;
+        bool convert = false;
 
-      for(QList<QString>::iterator it; it != trainingValues.end() ; it++)
+        for(QList<QString>::iterator it; it != trainingValues.end() ; it++)
         {
-          QString valueAsString = *it;
-          valueAsString.toDouble(&convert);
-          ASSERT(convert , "Values in list is not a valid float");
+            QString valueAsString = *it;
+            valueAsString.toDouble(&convert);
+            ASSERT(convert , "Values in list is not a valid float");
         }
     }
-  else
+    else
     {
-      readWriteTrainingValuesFiles();
+        readWriteTrainingValuesFiles();
     }
 }
 
 af::array RealMRVMItem::forecastValues(int row)
 {
-  af::array value(1,1);
+    af::array value(1,1);
 
-
-
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      value = m_forecastValuesAsString[row].toDouble();
+        value = m_forecastValuesAsString[row].toDouble();
     }
-  else
+    else
     {
-      value = m_forecastValues[row];
+        value = m_forecastValues[row];
     }
 
-  return value;
+    return value;
 }
 
 void RealMRVMItem::setForecastValues(int row, const af::array& values, const af::array& uncertainty)
 {
-  float* val = values.host<float>();
-  float* uncert = uncertainty.host<float>();
+    float* val = values.host<float>();
+    float* uncert = uncertainty.host<float>();
 
-  if(!m_properties["ReadFromFile"].toBool())
+
+
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      this->m_forecastValuesAsString[row] = QString::number(val[0]);
-      this->m_forecastUncertaintyValuesAsString[row] = QString::number(uncert[0]);
+        if(row >= m_forecastValuesAsString.length())
+            expandListTo(m_forecastValuesAsString, row);
+        if(row >= m_forecastUncertaintyValuesAsString.length())
+            expandListTo(m_forecastUncertaintyValuesAsString, row);
+
+        this->m_forecastValuesAsString[row] = QString::number(val[0]);
+        this->m_forecastUncertaintyValuesAsString[row] = QString::number(uncert[0]);
     }
-  else
+    else
     {
-      if(row >= m_forecastValues.length())
-        expandListTo(m_forecastValues, row);
+        if(row >= m_forecastValues.length())
+            expandListTo(m_forecastValues, row);
+        if(row >= m_forecastUncertaintyValues.length())
+            expandListTo(m_forecastUncertaintyValues, row);
 
-      this->m_forecastValues[row] = val[0];
-
-      if(row >= m_forecastUncertaintyValues.length())
-        expandListTo(m_forecastUncertaintyValues, row);
-
-      this->m_forecastUncertaintyValues[row] = uncert[0];
+        this->m_forecastValues[row] = val[0];
+        this->m_forecastUncertaintyValues[row] = uncert[0];
     }
 
 
-  delete[] val;
-  delete[] uncert;
+    delete[] val;
+    delete[] uncert;
 }
 
 void RealMRVMItem::readXML(QXmlStreamReader &xmlReader)
 {
-  MRVMItem::readXML(xmlReader);
+    MRVMItem::readXML(xmlReader);
 
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      readWriteTrainingValuesFiles();
-      readWriteForecastValuesFiles();
-      readWriteForecastUncertaintyValuesFiles();
+        readWriteTrainingValuesFiles();
+        readWriteForecastValuesFiles();
+        readWriteForecastUncertaintyValuesFiles();
     }
 }
 
 void RealMRVMItem::writeXML(QXmlStreamWriter &xmlWriter)
 {
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      readWriteTrainingValuesFiles(false);
-      readWriteForecastValuesFiles(false);
-      readWriteForecastUncertaintyValuesFiles(false);
+        readWriteTrainingValuesFiles(false);
+        readWriteForecastValuesFiles(false);
+        readWriteForecastUncertaintyValuesFiles(false);
     }
 
-  MRVMItem::writeXML(xmlWriter);
+    MRVMItem::writeXML(xmlWriter);
 }
 
 int RealMRVMItem::columnCount()
 {
-  return 1;
+    return 1;
 }
 
 int RealMRVMItem::numTrainingValues() const
 {
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      return m_trainingValues.count();
+        return m_trainingValues.count();
     }
-  return m_trainingValuesAsString.count();
+    return m_trainingValuesAsString.count();
 }
 
 int RealMRVMItem::numForecastValues() const
 {
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      return m_forecastValues.count();
+        return m_forecastValues.count();
     }
 
-  return m_forecastValuesAsString.count();
+    return m_forecastValuesAsString.count();
 }
 
 MRVMItem::MRVMValueType RealMRVMItem::valueType() const
 {
-  return MRVMItem::Real;
+    return MRVMItem::Real;
 }
 
 QString RealMRVMItem::type() const
 {
-  return "RealMRVMItem";
+    return "RealMRVMItem";
 }
 
 void RealMRVMItem::readWriteTrainingValuesFiles(bool read)
 {
 
 
-  QFile file (m_trainingValuesAsString[0]);
+    QFile file (m_trainingValuesAsString[0]);
 
-  if(read)
+    if(read)
     {
-      if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+        if(file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
-          m_trainingValues.clear();
-          bool ok;
-          while (!file.atEnd())
+            m_trainingValues.clear();
+            bool ok;
+            while (!file.atEnd())
             {
-              QString line = file.readLine();
-              float value = line.trimmed().toFloat(&ok);
+                QString line = file.readLine();
+                float value = line.trimmed().toFloat(&ok);
 
-              if(ok)
+                if(ok)
                 {
-                  m_trainingValues.append(value);
+                    m_trainingValues.append(value);
                 }
             }
         }
     }
-  else
+    else
     {
-      if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+        if(file.open(QIODevice::WriteOnly | QIODevice::Text))
         {
-          QTextStream tStream(&file);
-          tStream << "Training Values" << endl;
+            QTextStream tStream(&file);
+            tStream << "Training Values" << endl;
 
-          for(int i = 0 ; i < m_trainingValues.length() ; i++)
+            for(int i = 0 ; i < m_trainingValues.length() ; i++)
             {
-              tStream << m_trainingValues[i] << endl;
+                tStream << m_trainingValues[i] << endl;
             }
         }
     }
 
-  file.close();
+    file.close();
 }
 
 void RealMRVMItem::readWriteForecastValuesFiles(bool read)
 {
-  if(m_forecastValuesAsString.length())
+    if(m_forecastValuesAsString.length())
     {
-      QFile file (m_forecastValuesAsString[0]);
+        QFile file (m_forecastValuesAsString[0]);
 
-      if(read)
+        if(read)
         {
-          if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+            if(file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-              m_forecastValues.clear();
-              bool ok;
-              while (!file.atEnd())
+                m_forecastValues.clear();
+                bool ok;
+                while (!file.atEnd())
                 {
-                  QString line = file.readLine();
-                  float value = line.trimmed().toFloat(&ok);
+                    QString line = file.readLine();
+                    float value = line.trimmed().toFloat(&ok);
 
-                  if(ok)
+                    if(ok)
                     {
-                      m_forecastValues.append(value);
+                        m_forecastValues.append(value);
                     }
                 }
             }
         }
-      else
+        else
         {
-          if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+            if(file.open(QIODevice::WriteOnly | QIODevice::Text))
             {
-              QTextStream tStream(&file);
+                QTextStream tStream(&file);
 
-              tStream << "Forecast Values" << endl;
+                tStream << "Forecast Values" << endl;
 
-              for(int i = 0 ; i < m_forecastValues.length() ; i++)
+                for(int i = 0 ; i < m_forecastValues.length() ; i++)
                 {
-                  tStream << m_forecastValues[i] << endl;
+                    tStream << m_forecastValues[i] << endl;
                 }
             }
         }
 
-      file.close();
+        file.close();
     }
 }
 
 void RealMRVMItem::readWriteForecastUncertaintyValuesFiles(bool read)
 {
-  if(m_forecastUncertaintyValuesAsString.length())
+    if(m_forecastUncertaintyValuesAsString.length())
     {
-      QFile file (m_forecastUncertaintyValuesAsString[0]);
+        QFile file (m_forecastUncertaintyValuesAsString[0]);
 
-      if(read)
+        if(read)
         {
-          if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+            if(file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-              m_forecastUncertaintyValues.clear();
-              bool ok;
-              while (!file.atEnd())
+                m_forecastUncertaintyValues.clear();
+                bool ok;
+                while (!file.atEnd())
                 {
-                  QString line = file.readLine();
-                  float value = line.trimmed().toFloat(&ok);
+                    QString line = file.readLine();
+                    float value = line.trimmed().toFloat(&ok);
 
-                  if(ok)
+                    if(ok)
                     {
-                      m_forecastUncertaintyValues.append(value);
+                        m_forecastUncertaintyValues.append(value);
                     }
                 }
             }
         }
-      else
+        else
         {
-          if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+            if(file.open(QIODevice::WriteOnly | QIODevice::Text))
             {
-              QTextStream tStream(&file);
+                QTextStream tStream(&file);
 
-              tStream << "Forecast Uncertainty Values" << endl;
+                tStream << "Forecast Uncertainty Values" << endl;
 
-              for(int i = 0 ; i < m_forecastUncertaintyValues.length() ; i++)
+                for(int i = 0 ; i < m_forecastUncertaintyValues.length() ; i++)
                 {
-                  tStream << m_forecastUncertaintyValues[i] << endl;
+                    tStream << m_forecastUncertaintyValues[i] << endl;
                 }
             }
         }
 
-      file.close();
+        file.close();
     }
 }
 
 void RealMRVMItem::expandListTo(QList<float>& list, int index)
 {
-  while (list.length() <= index )
+    while (list.length() <= index )
     {
-      list.append(0);
+        list.append(0);
+    }
+}
+
+void RealMRVMItem::expandListTo(QList<QString>& list, int index)
+{
+    while (list.length() <= index )
+    {
+        list.append("");
     }
 }

@@ -126,6 +126,11 @@ bool MRVM::removeOutputItem(const QString& name)
     return false;
 }
 
+QList<RasterBootstrapSampler*> MRVM::rasterBootstrapSamplers() const
+{
+    return m_rasterBootstrapSamplers;
+}
+
 QString MRVM::matrixOutputFile() const
 {
     return this->m_matrixOutputFile;
@@ -134,6 +139,16 @@ QString MRVM::matrixOutputFile() const
 void MRVM::setMatrixOutputFile(const QString& matrixOutputFile)
 {
     this->m_matrixOutputFile = matrixOutputFile;
+}
+
+const af::array& MRVM::inputMatrix() const
+{
+    return m_inputMatrix;
+}
+
+const af::array& MRVM::targetMatrix() const
+{
+    return m_targetMatrix;
 }
 
 const af::array& MRVM::usedRelevantVectors() const
@@ -165,7 +180,7 @@ void MRVM::saveProject()
 {
     QFile file(m_file.absoluteFilePath());
 
-    if(file.open(QIODevice::ReadWrite))
+    if(file.open(QIODevice::WriteOnly | QIODevice::Truncate))
     {
         QXmlStreamWriter writer(&file);
         writer.setAutoFormatting(true);
@@ -313,6 +328,21 @@ void MRVM::saveProject()
                 MRVMItem* item = it.value();
                 item->writeXML(writer);
             }
+
+            writer.writeEndElement();
+        }
+
+        if(m_rasterBootstrapSamplers.size())
+        {
+            writer.writeStartElement("RasterBootstrapSamplers");
+
+            for(QList<RasterBootstrapSampler*>::iterator it = m_rasterBootstrapSamplers.begin();
+                it != m_rasterBootstrapSamplers.end() ; it++)
+            {
+                RasterBootstrapSampler* rasterBootstrapSampler = *it;
+                rasterBootstrapSampler->writeXML(writer);
+            }
+
             writer.writeEndElement();
         }
 
@@ -331,7 +361,9 @@ void MRVM::start()
         performTraining();
         break;
     case Regression:
+    {
         performRegression();
+    }
         break;
     default:
     {
@@ -345,6 +377,7 @@ void MRVM::start()
 
 void MRVM::performTraining()
 {
+
     switch (algmode)
     {
     case 0:
@@ -387,25 +420,33 @@ void MRVM::mrvm()
 
     af::array beta, mask, phiSigmaPhi;
 
-
-
     m_alpha = af::constant(af::Inf, N+1,1);
-    af::array tvariance = af::var(m_targetMatrix);
-
-    af::array variance = ((tvariance == 0) * 0.00001) + tvariance ;
-
+    af::array variance = af::var(m_targetMatrix);
     af_print(variance);
 
     beta = 1.0 / (variance);
+    af::array tempNonInf = beta(af::where( beta != af::Inf));
+
+    if(tempNonInf.dims(1) != beta.dims(1))
+    {
+        af::array  vmax = af::max(af::max(tempNonInf,1));
+        float* ttt = vmax.host<float>();
+        beta(af::where(beta == af::Inf)) = ttt[0];
+        delete[] ttt;
+    }
+
+    if(m_verbose)
+    {
+        //change to inf
+        af_print(beta);
+        cout << endl;
+    }
+
+
     mask = m_alpha < af::NaN;
     phiSigmaPhi = af::constant(0.0,N,N,V);
 
 
-    if(m_verbose)
-    {
-        af_print(beta);
-        cout << endl;
-    }
 
     af::array nmask;
     af::array Sigma;
@@ -431,16 +472,18 @@ void MRVM::mrvm()
 
         bool allAlphaInfBool = allTrue<bool>(allAlphaInf > 0);
 
-
         for(int i = 0 ; i <  maxN; i++)
         {
-            af::array phispani = phi(span, i);
-            af::array phiSq = af::matmul(phispani.T(),phispani);
+            af::array phispani, phiSq ;
+
+            phispani = phi(span, i);
+            phiSq =  af::matmul(phispani.T(),phispani);
 
             if(allAlphaInfBool)
             {
                 for(int j = 0 ; j < V ; j++)
                 {
+
                     af::array sp = beta(j) * phiSq;
                     af::array qp = beta(j) * matmul(phispani.T(),m_targetMatrix(span,j));
                     sPrime(i,j) = sp;
@@ -451,17 +494,20 @@ void MRVM::mrvm()
             {
                 for(int j = 0 ; j < V ; j++)
                 {
+
                     af::array power = af::pow(beta(j),2.0);
                     float* vvv = power.host<float>();
                     af::array temp  = vvv[0] * matmul(phispani.T(),phiSigmaPhi(span,span,j)) ;
                     delete[] vvv;
 
                     af::array sp =  (beta(j) * phiSq) - matmul(temp,phispani);
+
                     af::array qp = beta(j) * matmul(phispani.T(),m_targetMatrix(span,j)) - matmul(temp,m_targetMatrix(span,j));
                     sPrime(i,j) = sp;
                     qPrime(i,j) = qp ;
                 }
             }
+
 
             if (allTrue<bool>(mask(i) == 0))
             {
@@ -479,12 +525,10 @@ void MRVM::mrvm()
             }
         }
 
-        //  cout << "  Time elapsed: " <<  timer.elapsed() * 1.0/1000.0 << " s"<< endl;
 
         af::array deltaL = af::constant(af::NaN, N+1,1);
         af::array task = af::constant(0,N+1,1);
         af::array alphaNew = af::constant(af::NaN, N+1,1);
-
 
         for(int i = 0 ; i < N+1 ; i++)
         {
@@ -522,17 +566,15 @@ void MRVM::mrvm()
 
             af::array sumPolyCoeff = af::sum(polyCoeff);
 
-            //af_print(polyCoeff);
-            //  af_print(sumPolyCoeff);
 
             if(allTrue<bool>(sumPolyCoeff(0) != 0))
             {
+                af_print(polyCoeff);
+                af_print(sumPolyCoeff);
                 ASSERT(false, "The order of polynomial should be 2V-1");
             }
 
             int length  = sumPolyCoeff.dims(1);
-
-            //af_print (sumPolyCoeff);
 
             float* values = sumPolyCoeff.host<float>();
 
@@ -630,6 +672,7 @@ void MRVM::mrvm()
             }
         }
 
+        // cout << "  Time elapsed: " <<  timer.elapsed() * 1.0/1000.0 << " s"<< endl;
 
         af::array i(1,1);
 
@@ -790,7 +833,7 @@ void MRVM::mrvm()
         }
     }
 
-    cout << "Total Number of Iterations : " << m_numberOfIterations + 1 << endl;
+    cout << "Total Number of Iterations : " << m_numberOfIterations  << endl;
     cout << "Training time : " << timer.elapsed() * 1.0/1000.0 << "s" << endl;
 
 
@@ -914,65 +957,90 @@ void MRVM::performRegression()
 
         for(int r = 0 ; r < rows ; r++)
         {
+
             af::array inputArray = getInputMatrix(r,false);
+            int inputRows = inputArray.dims(0);
+            af::array outputArray(inputRows , m_targetMatrix.dims(1));
+            af::array stDev(inputArray.dims(0) , m_targetMatrix.dims(1));
 
-            if(m_verbose)
+            int maxIts = std::ceil(inputRows*1.0/ 2000.0);
+            int currentStart = 0;
+
+            for(int sr = 0 ; sr < maxIts ; sr++)
             {
-                af_print(inputArray);
-                cout << endl;
-            }
+                int end = currentStart + 2000 - 1;
 
-
-            af::array varWeight = constant(0.0,inputArray.dims(0),V);
-            af::array phi = m_kernel.calculateKernel(inputArray , m_inputMatrix);
-
-
-            af::array usedIndices = af::where( m_used == 1.0);
-            af::array phiUsed = phi(span, usedIndices);
-            af::array outputArray = matmul(phiUsed , m_Mu);
-
-            if(m_verbose)
-            {
-                af_print(outputArray);
-                cout << endl;
-            }
-
-            for(int i = 0; i < V ; i++)
-            {
-                af::array t = af::solve(m_invSigma(span,span,i) ,phiUsed.T());
-
-                af::array f = matmul(phi(span,usedIndices),t);
-
-                if(f.dims(0) > 1)
+                if(end >= inputRows)
                 {
-                    varWeight(span,i) =  af::diag(f);
+                    end = inputRows - 1;
                 }
-                else
+
+
+                af::seq rseq = af::seq(currentStart , end);
+                af::array inp = inputArray(rseq, af::span);
+
+                if(m_verbose)
                 {
-                    varWeight(span,i) =  f;
+                    af_print(inp);
+                    cout << endl;
                 }
+
+
+                af::array varWeight = constant(0.0,inp.dims(0),V);
+
+                af::array phi = m_kernel.calculateKernel(inp , m_inputMatrix);
+
+                af::array usedIndices = af::where( m_used == 1.0);
+                af::array phiUsed = phi(span, usedIndices);
+                af::array out = matmul(phiUsed , m_Mu);
+
+                if(m_verbose)
+                {
+                    af_print(out);
+                    cout << endl;
+                }
+
+                for(int i = 0; i < V ; i++)
+                {
+                    af::array t = af::solve(m_invSigma(span,span,i) ,phiUsed.T());
+
+                    std::cout << t.dims(0) << " " << t.dims(1) << std::endl;
+                    std::cout << phiUsed.dims(0) << " " << phiUsed.dims(1) << std::endl;
+
+                    af::array f = af::matmul(phiUsed,t);
+
+                    if(f.dims(0) > 1)
+                    {
+                        varWeight(span,i) =  af::diag(f);
+                    }
+                    else
+                    {
+                        varWeight(span,i) =  f;
+                    }
+                }
+
+                int numNoiseRows = out.dims(0);
+                af::array tempNoise(numNoiseRows, noise.dims(1));
+
+                for(int f = 0 ; f < numNoiseRows; f++)
+                {
+                    tempNoise(f,span) = noise;
+                }
+
+                af::array std = af::sqrt(tempNoise + varWeight);
+
+                if(m_verbose)
+                {
+                    af_print(std);
+                    cout << endl;
+                }
+
+                outputArray(rseq, af::span) = out;
+                stDev(rseq , af::span) = std;
+                currentStart = end+1;
             }
 
-            int numNoiseRows = outputArray.dims(0);
-            af::array tempNoise(numNoiseRows, noise.dims(1));
-
-            for(int f = 0 ; f < numNoiseRows; f++)
-            {
-                tempNoise(f,span) = noise;
-            }
-
-            //            af_print(tempNoise);
-            //            af_print(varWeight);
-
-            af::array std = af::sqrt(tempNoise + varWeight);
-
-            if(m_verbose)
-            {
-                af_print(std);
-                cout << endl;
-            }
-
-            writeOutput(r , outputArray , std);
+            writeOutput(r,outputArray , stDev);
 
         }
     }
@@ -1008,11 +1076,11 @@ void MRVM::readProject()
                         if(!xmlReader.name().compare("MRVM", Qt::CaseInsensitive))
                         {
                             QXmlStreamAttributes attributes = xmlReader.attributes();
-                            
+
                             for(QXmlStreamAttributes::iterator it = attributes.begin() ; it != attributes.end() ; it++)
                             {
                                 QXmlStreamAttribute attribute = *it;
-                                
+
                                 if(!attribute.name().compare("name", Qt::CaseInsensitive))
                                 {
                                     m_name = attribute.value().toString();
@@ -1020,7 +1088,7 @@ void MRVM::readProject()
                                 else if(!attribute.name().compare("mode", Qt::CaseInsensitive))
                                 {
                                     QString mode = attribute.value().toString();
-                                    
+
                                     if(!mode.compare(mode,"Training" , Qt::CaseInsensitive))
                                     {
                                         m_mode = Training;
@@ -1069,7 +1137,7 @@ void MRVM::readProject()
                         else if(!xmlReader.name().compare("Converged", Qt::CaseInsensitive))
                         {
                             QString tol = xmlReader.readElementText();
-                            
+
                             if(!tol.compare("true" , Qt::CaseInsensitive))
                                 m_converged = true;
                             else
@@ -1098,7 +1166,7 @@ void MRVM::readProject()
                         else if(!xmlReader.name().compare("Verbose", Qt::CaseInsensitive))
                         {
                             QString tol = xmlReader.readElementText();
-                            
+
                             if(!tol.compare("true" , Qt::CaseInsensitive))
                                 m_verbose = true;
                             else
@@ -1108,27 +1176,27 @@ void MRVM::readProject()
                         {
                             m_matrixOutputFile = xmlReader.readElementText();
                             QFileInfo fileInfo(m_matrixOutputFile);
-                            
+
                             if(fileInfo.exists())
                             {
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "InputMatrix") != -1)
                                     m_inputMatrix = readArray(m_matrixOutputFile.toStdString().c_str(), "InputMatrix");
-                                
+
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "TargetMatrix") != -1)
                                     m_targetMatrix = readArray(m_matrixOutputFile.toStdString().c_str() , "TargetMatrix");
 
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "Used") != -1)
                                     m_used = readArray(m_matrixOutputFile.toStdString().c_str() , "Used");
-                                
+
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "Alpha") != -1)
                                     m_alpha = readArray(m_matrixOutputFile.toStdString().c_str() , "Alpha");
-                                
+
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "InverseSigma") != -1)
                                     m_invSigma = readArray(m_matrixOutputFile.toStdString().c_str() , "InverseSigma");
-                                
+
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "Omega") != -1)
                                     m_omega = readArray(m_matrixOutputFile.toStdString().c_str() , "Omega");
-                                
+
                                 if(af::readArrayCheck(m_matrixOutputFile.toStdString().c_str() , "Mu") != -1)
                                     m_Mu = readArray(m_matrixOutputFile.toStdString().c_str() , "Mu");
                             }
@@ -1138,15 +1206,15 @@ void MRVM::readProject()
                             while(!(xmlReader.isEndElement() && !xmlReader.name().compare("Kernel", Qt::CaseInsensitive)) && !xmlReader.hasError())
                             {
                                 QXmlStreamAttributes attributes = xmlReader.attributes();
-                                
+
                                 for(QXmlStreamAttributes::iterator it = attributes.begin() ; it != attributes.end() ; it++)
                                 {
                                     QXmlStreamAttribute attribute = *it;
-                                    
+
                                     if(!attribute.name().compare("KernelType", Qt::CaseInsensitive))
                                     {
                                         QString kernelType = attribute.value().toString();
-                                        
+
                                         if(!kernelType.compare("Gaussian", Qt::CaseInsensitive))
                                         {
                                             m_kernel.setKernelType(Kernel::Gaussian);
@@ -1185,7 +1253,7 @@ void MRVM::readProject()
                                         }
                                     }
                                 }
-                                
+
                                 if(!xmlReader.name().compare("LengthScale",Qt::CaseInsensitive))
                                 {
                                     QString lengthScale = xmlReader.readElementText();
@@ -1194,7 +1262,7 @@ void MRVM::readProject()
                                 else if(!xmlReader.name().compare("UseBias",Qt::CaseInsensitive))
                                 {
                                     QString useBias = xmlReader.readElementText();
-                                    
+
                                     if(!useBias.compare("true" , Qt::CaseInsensitive))
                                         m_kernel.setUseBias(true);
                                     else
@@ -1203,24 +1271,24 @@ void MRVM::readProject()
                                 else if(!xmlReader.name().compare("PolynomialPower",Qt::CaseInsensitive))
                                 {
                                     QString power = xmlReader.readElementText();
-                                    
+
                                     m_kernel.setPolynomialPower(power.toDouble());
                                 }
-                                
+
                                 xmlReader.readNext();
                             }
                         }
                         else if(!xmlReader.name().compare("InputItems", Qt::CaseInsensitive))
                         {
                             cout << "Input Items\n" << endl;
-                            
+
                             while(!(xmlReader.isEndElement() && !xmlReader.name().compare("InputItems", Qt::CaseInsensitive)) && !xmlReader.hasError())
                             {
                                 if(!xmlReader.name().compare("MRVMItem",Qt::CaseInsensitive))
                                 {
                                     MRVMItem* item = readMRVMItem(MRVMItem::Input, xmlReader);
                                     cout << item->toString().toStdString() << endl;
-                                    
+
                                     if(item)
                                     {
                                         if( m_inputItems.find(item->name()) == m_inputItems.end())
@@ -1233,15 +1301,15 @@ void MRVM::readProject()
                                         }
                                     }
                                 }
-                                
+
                                 xmlReader.readNext();
                             }
                         }
                         else if(!xmlReader.name().compare("OutputItems", Qt::CaseInsensitive))
                         {
                             cout << "Output Items\n" << endl;
-                            
-                            
+
+
                             while (!(xmlReader.isEndElement()
                                      && !xmlReader.name().compare("OutputItems", Qt::CaseInsensitive))
                                    && !xmlReader.hasError())
@@ -1249,9 +1317,9 @@ void MRVM::readProject()
                                 if(!xmlReader.name().compare("MRVMItem",Qt::CaseInsensitive))
                                 {
                                     MRVMItem* item = readMRVMItem(MRVMItem::Output, xmlReader);
-                                    
+
                                     cout << item->toString().toStdString() << endl;
-                                    
+
 
                                     if(item)
                                     {
@@ -1265,11 +1333,26 @@ void MRVM::readProject()
                                         }
                                     }
                                 }
-                                
+
                                 xmlReader.readNext();
                             }
                         }
-                        
+                        else if(!xmlReader.name().compare("RasterBootstrapSamplers", Qt::CaseInsensitive))
+                        {
+
+                            while (!(xmlReader.isEndElement()
+                                     && !xmlReader.name().compare("RasterBootstrapSamplers", Qt::CaseInsensitive))
+                                   && !xmlReader.hasError())
+                            {
+                                if(!xmlReader.name().compare("RasterBootstrapSampler",Qt::CaseInsensitive))
+                                {
+                                    RasterBootstrapSampler* rasterBootstrapSampler = new RasterBootstrapSampler();
+                                    rasterBootstrapSampler->readXML(xmlReader);
+                                    m_rasterBootstrapSamplers.append(rasterBootstrapSampler);
+                                }
+                                xmlReader.readNext();
+                            }
+                        }
                     }
                         break;
                     default:
@@ -1282,9 +1365,9 @@ void MRVM::readProject()
 
         ASSERT(!xmlReader.hasError(), xmlReader.errorString().toStdString().c_str());
 
-        validateInputs();
-
         file.close();
+        processRasterBootstrapSamplers();
+        validateInputs();
     }
 }
 
@@ -1329,17 +1412,77 @@ MRVMItem* MRVM::readMRVMItem(MRVMItem::IOType iotype, QXmlStreamReader& xmlReade
         }
         else if(!type.compare("RealRaster", Qt::CaseInsensitive))
         {
-//            item = new RealRaster(iotype, name);
-//            item->readXML(xmlReader);
+            item = new RealRaster(iotype, name);
+            item->readXML(xmlReader);
         }
         else if(!type.compare("CategoricalRaster", Qt::CaseInsensitive))
         {
-//            item = new CategoricalRaster(iotype, name);
-//            item->readXML(xmlReader);
+            item = new CategoricalRaster(iotype, name);
+            item->readXML(xmlReader);
         }
     }
 
     return item;
+}
+
+void MRVM::processRasterBootstrapSamplers()
+{
+    for(QList<RasterBootstrapSampler*>::iterator it = m_rasterBootstrapSamplers.begin() ;
+        it != m_rasterBootstrapSamplers.end() ; it++)
+    {
+        RasterBootstrapSampler* sampler = *it;
+
+        QList<QString> rasterItemNames = sampler->rasterItemNames();
+
+        for(int i = 0 ; i < rasterItemNames.length() ; i++)
+        {
+            QString name = rasterItemNames[i];
+            bool found = false;
+
+            QMap<QString, MRVMItem*>::Iterator it =  m_inputItems.find(name);
+
+            if(it != m_inputItems.end())
+            {
+                MRVMItem* item = it.value();
+                RasterItem* ritem = dynamic_cast<RasterItem*>(item);
+
+                if(ritem)
+                {
+                    sampler->addRasterItem(ritem);
+                    found = true;
+                }
+
+            }
+
+            if(!found)
+            {
+                it =  m_outputItems.find(name);
+
+                if(it != m_outputItems.end())
+                {
+                    MRVMItem* item = it.value();
+                    RasterItem* ritem = dynamic_cast<RasterItem*>(item);
+
+                    if(ritem)
+                    {
+                        sampler->addRasterItem(ritem);
+                        found = true;
+                    }
+
+                }
+            }
+
+            if(!found)
+            {
+                ASSERT(found , name.toStdString() + " was not found or is not a valid raster item");
+            }
+        }
+
+        if(!sampler->samplingLocations().count())
+            sampler->createValidWindowCenters();
+        sampler->setRasterItemSamplingAttributes();
+
+    }
 }
 
 void MRVM::validateInputs()
@@ -1361,7 +1504,7 @@ void MRVM::validateInputs()
         int tempMaxNumRowsPerForecastValue;
         m_numOutputForecastRows = ioValuesRowCount(tempMaxNumRowsPerForecastValue,false, false);
 
-        ASSERT(m_numInputForecastRows == m_numOutputForecastRows , "Number of input forecast rows must be equal to number of output training rows");
+        //ASSERT(m_numInputForecastRows == m_numOutputForecastRows , "Number of input forecast rows must be equal to number of output training rows");
         ASSERT(m_maxNumRowsPerForecastValue == tempMaxNumRowsPerForecastValue, "Max number of rows per input forecast value must be equal to max number of rows per output forecast value");
 
 
@@ -1392,7 +1535,7 @@ void MRVM::validateInputs()
             MRVMItem* item = it.value();
 
             ASSERT(item->numTrainingValues() == m_numberOfTrainingValues, "Number of training values are not equal for all items" );
-            ASSERT(item->numForecastValues() == m_numberOfForecastValues, "Number of forecast values are not equal for all items");
+            //ASSERT(item->numForecastValues() == m_numberOfForecastValues, "Number of forecast values are not equal for all items");
 
             if(item->numRowsPerTrainingValue() != 1 && item->numRowsPerTrainingValue() != m_maxNumRowsPerTrainingValue)
             {
@@ -1446,7 +1589,7 @@ int MRVM::ioValuesRowCount(int & maxrowsPerValue, bool input,  bool training) co
             {
                 ASSERT(false, "Error number of rows per value is inconsistent");
             }
-            else
+            else if(item->numRowsPerTrainingValue() > maxrowsPerValue)
             {
                 maxrowsPerValue = item->numRowsPerTrainingValue();
             }
@@ -1461,7 +1604,7 @@ int MRVM::ioValuesRowCount(int & maxrowsPerValue, bool input,  bool training) co
             {
                 ASSERT(false, "Error number of rows per value is inconsistent");
             }
-            else
+            else if(item->numRowsPerTrainingValue() > maxrowsPerValue)
             {
                 maxrowsPerValue = item->numRowsPerTrainingValue();
             }
@@ -1478,7 +1621,7 @@ int MRVM::ioValuesRowCount(int & maxrowsPerValue, bool input,  bool training) co
             {
                 ASSERT(false, "Error number of rows per value is inconsistent");
             }
-            else
+            else if(item->numRowsPerForecastValue() > maxrowsPerValue)
             {
                 maxrowsPerValue = item->numRowsPerForecastValue();
             }
@@ -1493,7 +1636,7 @@ int MRVM::ioValuesRowCount(int & maxrowsPerValue, bool input,  bool training) co
             {
                 ASSERT(false, "Error number of rows per value is inconsistent");
             }
-            else
+            else if(item->numRowsPerForecastValue() > maxrowsPerValue)
             {
                 maxrowsPerValue = item->numRowsPerForecastValue();
             }
@@ -1576,10 +1719,11 @@ af::array MRVM::getInputMatrix(int valueIndex, bool training)
             {
                 af::array temp = item->trainingValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerTrainingValue ; rr++)
+                gfor (seq rr , m_maxNumRowsPerTrainingValue)
                 {
                     values(rr , colSeq) = temp;
                 }
+
             }
             else
             {
@@ -1604,10 +1748,11 @@ af::array MRVM::getInputMatrix(int valueIndex, bool training)
             {
                 af::array temp = item->forecastValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerForecastValue ; rr++)
+                gfor (seq rr , m_maxNumRowsPerForecastValue)
                 {
                     values(rr , colSeq) = temp;
                 }
+
             }
             else
             {
@@ -1676,10 +1821,11 @@ af::array MRVM::getOutputMatrix(int valueIndex, bool training)
             {
                 af::array temp = item->trainingValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerTrainingValue ; rr++)
+                gfor (seq rr , m_maxNumRowsPerTrainingValue)
                 {
                     values(rr , colSeq) = temp;
                 }
+
             }
             else
             {
@@ -1704,10 +1850,11 @@ af::array MRVM::getOutputMatrix(int valueIndex, bool training)
             {
                 af::array temp = item->forecastValues(valueIndex);
 
-                for(int rr = 0 ; rr < m_maxNumRowsPerForecastValue ; rr++)
+                gfor (seq rr , m_maxNumRowsPerForecastValue)
                 {
                     values(rr , colSeq) = temp;
                 }
+
             }
             else
             {

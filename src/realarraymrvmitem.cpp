@@ -6,7 +6,7 @@ QRegularExpression RealArrayMRVMItem::s_regex("\\s*(=>|,|\\s)\\s*");
 
 
 RealArrayMRVMItem::RealArrayMRVMItem(MRVMItem::IOType iotype,const QString& name)
-  :MRVMItem(iotype, name),  m_columnCount(0)
+    :MRVMItem(iotype, name),  m_columnCount(0)
 {
 
 }
@@ -19,450 +19,459 @@ RealArrayMRVMItem::~RealArrayMRVMItem()
 af::array RealArrayMRVMItem::trainingValues(int row)
 {
 
-  af::array values(1, m_columnCount);
+    af::array values(1, m_columnCount);
 
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      ASSERT(row < m_trainingValuesAsString.count(),"Row must be less or equal to number of rows");
+        ASSERT(row < m_trainingValuesAsString.count(),"Row must be less or equal to number of rows");
 
 
-      QString line = m_trainingValuesAsString[row];
-      QStringList columnValues = line.split(",");
+        QString line = m_trainingValuesAsString[row];
+        QStringList columnValues = line.split(",");
 
-      for(int i = 0 ; i < m_columnCount; i++)
+        for(int i = 0 ; i < m_columnCount; i++)
         {
-          values(0,i) = columnValues[i].toFloat();
+            values(0,i) = columnValues[i].toFloat();
         }
     }
-  else
+    else
     {
-      QList<float> vals = m_trainingValues[row];
+        QList<float> vals = m_trainingValues[row];
 
-      for(int i = 0 ; i < m_columnCount; i++)
+        for(int i = 0 ; i < m_columnCount; i++)
         {
-          values(0,i) = vals[i];
+            values(0,i) = vals[i];
         }
 
     }
 
-  return values;
+    return values;
 }
 
 void RealArrayMRVMItem::setTrainingValuesAsString(const QList<QString> &trainingValues)
 {
-  MRVMItem::setTrainingValuesAsString(trainingValues);
+    MRVMItem::setTrainingValuesAsString(trainingValues);
 
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      QStringList line = trainingValues[0].split(",");
-      m_columnCount = line.size();
+        QStringList line = trainingValues[0].split(",");
+        m_columnCount = line.size();
     }
-  else
+    else
     {
-      readWriteTrainingValuesFiles();
+        readWriteTrainingValuesFiles();
     }
 }
 
 af::array RealArrayMRVMItem::forecastValues(int row)
 {
 
-  af::array values(1, m_columnCount);
+    af::array values(1, m_columnCount);
 
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      ASSERT(row < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
+        ASSERT(row < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
 
-      QString line = m_forecastValuesAsString[row];
-      QStringList columnValues = line.split(",");
+        QString line = m_forecastValuesAsString[row];
+        QStringList columnValues = line.split(",");
 
-      for(int i = 0 ; i < m_columnCount; i++)
+        for(int i = 0 ; i < m_columnCount; i++)
         {
-          values(0,i) = columnValues[i].toFloat();
+            values(0,i) = columnValues[i].toFloat();
         }
     }
-  else
+    else
     {
-      QList<float> vals = m_trainingValues[row];
+        QList<float> vals = m_trainingValues[row];
 
-      for(int i = 0 ; i < m_columnCount; i++)
+        for(int i = 0 ; i < m_columnCount; i++)
         {
-          values(0,i) = vals[i];
+            values(0,i) = vals[i];
         }
     }
 
-  return values;
+    return values;
 }
 
 void RealArrayMRVMItem::setForecastValues(int row, const af::array& values, const af::array& uncertainty)
 {
+    float* val = values.host<float>();
+    float* uncert = uncertainty.host<float>();
 
-  float* val = values.host<float>();
-  float* uncert = uncertainty.host<float>();
-
-  if(!m_properties["ReadFromFile"].toBool())
+    if(!m_properties["ReadFromFile"].toBool())
     {
-      ASSERT(row < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
+        if(row >= m_forecastValuesAsString.length())
+            expandListTo(m_forecastValuesAsString, row);
+        if(row >= m_forecastUncertaintyValuesAsString.length())
+            expandListTo(m_forecastUncertaintyValuesAsString, row);
 
-      QString line =  QString::number(val[0]);
-      QString lineUncert =  QString::number(uncert[0]);
+        QString line =  QString::number(val[0]);
+        QString lineUncert =  QString::number(uncert[0]);
 
-      if(m_columnCount > 1)
+        if(m_columnCount > 1)
         {
-          for(int i = 1 ; i < m_columnCount; i++)
+            for(int i = 1 ; i < m_columnCount; i++)
             {
-              line = line + "," + QString::number(val[i]);
-              lineUncert = lineUncert + "," + QString::number(uncert[i]);
+                line = line + "," + QString::number(val[i]);
+                lineUncert = lineUncert + "," + QString::number(uncert[i]);
             }
         }
 
-      m_forecastValuesAsString[row] = line;
-      m_forecastUncertaintyValuesAsString[row] = lineUncert;
+        m_forecastValuesAsString[row] = line;
+        m_forecastUncertaintyValuesAsString[row] = lineUncert;
     }
-  else
+    else
     {
-      if(row >= m_forecastValues.length())
-        expandListTo(m_forecastValues,row);
+        if(row >= m_forecastValues.length())
+            expandListTo(m_forecastValues,row);
 
-      QList<float> rowV = m_forecastValues[row];
+        QList<float> rowV = m_forecastValues[row];
 
-      for(int i = 0 ; i < m_columnCount; i++)
+        for(int i = 0 ; i < m_columnCount; i++)
         {
-          rowV[i] = val[i];
+            rowV[i] = val[i];
         }
 
-      if(row >= m_forecastUncertaintyValues.length())
-        expandListTo(m_forecastUncertaintyValues,row);
+        if(row >= m_forecastUncertaintyValues.length())
+            expandListTo(m_forecastUncertaintyValues,row);
 
-      QList<float> rowU = m_forecastUncertaintyValues[row];
+        QList<float> rowU = m_forecastUncertaintyValues[row];
 
-      for(int i = 0 ; i < m_columnCount; i++)
+        for(int i = 0 ; i < m_columnCount; i++)
         {
-          rowU[i] = uncert[i];
+            rowU[i] = uncert[i];
         }
     }
 
-  delete[] val;
-  delete[] uncert;
+    delete[] val;
+    delete[] uncert;
 }
 
 void RealArrayMRVMItem::readXML(QXmlStreamReader &xmlReader)
 {
 
-  MRVMItem::readXML(xmlReader);
+    MRVMItem::readXML(xmlReader);
 
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      readWriteTrainingValuesFiles();
-      readWriteForecastValuesFiles();
-      readWriteForecastUncertaintyValuesFiles();
+        readWriteTrainingValuesFiles();
+        readWriteForecastValuesFiles();
+        readWriteForecastUncertaintyValuesFiles();
     }
-  else
+    else
     {
-      QStringList line = m_trainingValuesAsString[0].split(",");
-      m_columnCount = line.size();
+        QStringList line = m_trainingValuesAsString[0].split(",");
+        m_columnCount = line.size();
     }
 }
 
 void RealArrayMRVMItem::writeXML(QXmlStreamWriter &xmlWriter)
 {
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      readWriteTrainingValuesFiles(false);
-      readWriteForecastValuesFiles(false);
-      readWriteForecastUncertaintyValuesFiles(false);
+        readWriteTrainingValuesFiles(false);
+        readWriteForecastValuesFiles(false);
+        readWriteForecastUncertaintyValuesFiles(false);
     }
 
-  MRVMItem::writeXML(xmlWriter);
+    MRVMItem::writeXML(xmlWriter);
 }
 
 int RealArrayMRVMItem::columnCount()
 {
-  return m_columnCount;
+    return m_columnCount;
 }
 
 int RealArrayMRVMItem::numTrainingValues() const
 {
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      return m_trainingValues.count();
+        return m_trainingValues.count();
     }
-  return m_trainingValuesAsString.count();
+    return m_trainingValuesAsString.count();
 }
 
 int RealArrayMRVMItem::numForecastValues() const
 {
-  if(m_properties["ReadFromFile"].toBool())
+    if(m_properties["ReadFromFile"].toBool())
     {
-      return m_forecastValues.count();
+        return m_forecastValues.count();
     }
 
-  return m_forecastValuesAsString.count();
+    return m_forecastValuesAsString.count();
 }
-
 
 MRVMItem::MRVMValueType RealArrayMRVMItem::valueType() const
 {
-  return MRVMItem::Real;
+    return MRVMItem::Real;
 }
 
 QString RealArrayMRVMItem::type() const
 {
-  return "RealArrayMRVMItem";
+    return "RealArrayMRVMItem";
 }
 
 void RealArrayMRVMItem::readWriteTrainingValuesFiles(bool read)
 {
-  QFile file (m_trainingValuesAsString[0]);
+    QFile file (m_trainingValuesAsString[0]);
 
-  if(read)
+    if(read)
     {
-      if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+        if(file.open(QIODevice::ReadOnly | QIODevice::Text))
         {
-          m_trainingValues.clear();
-          bool ok;
-          m_columnCount = 0;
+            m_trainingValues.clear();
+            bool ok;
+            m_columnCount = 0;
 
-          while (!file.atEnd())
+            while (!file.atEnd())
             {
-              QString line = file.readLine();
-              QStringList  lineList = line.split(s_regex);
+                QString line = file.readLine();
+                QStringList  lineList = line.split(s_regex);
 
-              QList<float> mvals;
+                QList<float> mvals;
 
-              for(int i = 0 ; i < lineList.count() ; i++)
+                for(int i = 0 ; i < lineList.count() ; i++)
                 {
-                  float value = lineList[i].toFloat(&ok);
+                    float value = lineList[i].toFloat(&ok);
 
-                  if(ok)
+                    if(ok)
                     {
-                      mvals.append(value);
+                        mvals.append(value);
                     }
-                  else
+                    else
                     {
-                      break;
+                        break;
                     }
                 }
 
-              if(mvals.count())
+                if(mvals.count())
                 {
-                  m_trainingValues.append(mvals);
+                    m_trainingValues.append(mvals);
 
-                  if(!m_columnCount)
+                    if(!m_columnCount)
                     {
-                      m_columnCount = mvals.count();
+                        m_columnCount = mvals.count();
                     }
-                  else
+                    else
                     {
-                      ASSERT(m_columnCount == mvals.count() , "Column count mismatches");
+                        ASSERT(m_columnCount == mvals.count() , "Column count mismatches");
                     }
                 }
             }
         }
     }
-  else
+    else
     {
-      if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+        if(file.open(QIODevice::WriteOnly | QIODevice::Text))
         {
-          QTextStream tStream(&file);
-          tStream << "Training Values" << endl;
+            QTextStream tStream(&file);
+            tStream << "Training Values" << endl;
 
-          for(int i = 0 ; i < m_trainingValues.length() ; i++)
+            for(int i = 0 ; i < m_trainingValues.length() ; i++)
             {
-              QList<float> row = m_trainingValues[i];
+                QList<float> row = m_trainingValues[i];
 
-              for(int c = 0 ; c < row.length() ; c++)
+                for(int c = 0 ; c < row.length() ; c++)
                 {
-                  if(c)
+                    if(c)
                     {
-                      tStream << "," << m_trainingValues[i][c];
+                        tStream << "," << m_trainingValues[i][c];
                     }
-                  else
+                    else
                     {
-                      tStream << m_trainingValues[i][c];
+                        tStream << m_trainingValues[i][c];
                     }
 
                 }
 
-              tStream << endl;
+                tStream << endl;
             }
         }
     }
 
-  file.close();
+    file.close();
 }
 
 void RealArrayMRVMItem::readWriteForecastValuesFiles(bool read)
 {
 
-  if(m_forecastValuesAsString.length())
+    if(m_forecastValuesAsString.length())
     {
-      QFile file (m_forecastValuesAsString[0]);
+        QFile file (m_forecastValuesAsString[0]);
 
-      if(read)
+        if(read)
         {
-          if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+            if(file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-              m_forecastValues.clear();
-              bool ok;
-              m_columnCount = 0;
+                m_forecastValues.clear();
+                bool ok;
+                m_columnCount = 0;
 
-              while (!file.atEnd())
+                while (!file.atEnd())
                 {
-                  QString line = file.readLine();
-                  QStringList  lineList = line.split(s_regex);
+                    QString line = file.readLine();
+                    QStringList  lineList = line.split(s_regex);
 
-                  QList<float> mvals;
+                    QList<float> mvals;
 
-                  for(int i = 0 ; i < lineList.count() ; i++)
+                    for(int i = 0 ; i < lineList.count() ; i++)
                     {
-                      float value = lineList[i].toFloat(&ok);
+                        float value = lineList[i].toFloat(&ok);
 
-                      if(ok)
+                        if(ok)
                         {
-                          mvals.append(value);
+                            mvals.append(value);
                         }
                     }
 
-                  if(mvals.count())
+                    if(mvals.count())
                     {
-                      m_forecastValues.append(mvals);
+                        m_forecastValues.append(mvals);
 
-                      if(!m_columnCount)
+                        if(!m_columnCount)
                         {
-                          m_columnCount = mvals.count();
+                            m_columnCount = mvals.count();
                         }
-                      else
+                        else
                         {
-                          ASSERT(m_columnCount == mvals.count() , "Column count mismatches");
+                            ASSERT(m_columnCount == mvals.count() , "Column count mismatches");
                         }
                     }
                 }
             }
         }
-      else
+        else
         {
-          if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+            if(file.open(QIODevice::WriteOnly | QIODevice::Text))
             {
-              QTextStream tStream(&file);
-              tStream << "Training Values" << endl;
+                QTextStream tStream(&file);
+                tStream << "Training Values" << endl;
 
-              for(int i = 0 ; i < m_forecastValues.length() ; i++)
+                for(int i = 0 ; i < m_forecastValues.length() ; i++)
                 {
-                  QList<float> row = m_forecastValues[i];
+                    QList<float> row = m_forecastValues[i];
 
-                  for(int c = 0 ; c < row.length() ; c++)
+                    for(int c = 0 ; c < row.length() ; c++)
                     {
-                      if(c)
+                        if(c)
                         {
-                          tStream << "," << m_forecastValues[i][c];
+                            tStream << "," << m_forecastValues[i][c];
                         }
-                      else
+                        else
                         {
-                          tStream << m_forecastValues[i][c];
+                            tStream << m_forecastValues[i][c];
                         }
 
                     }
 
-                  tStream << endl;
+                    tStream << endl;
                 }
             }
         }
 
 
-      file.close();
+        file.close();
     }
 }
 
 void RealArrayMRVMItem::readWriteForecastUncertaintyValuesFiles(bool read)
 {
 
-  if(m_forecastUncertaintyValuesAsString.length())
+    if(m_forecastUncertaintyValuesAsString.length())
     {
-      QFile file (m_forecastUncertaintyValuesAsString[0]);
+        QFile file (m_forecastUncertaintyValuesAsString[0]);
 
-      if(read)
+        if(read)
         {
-          if(file.open(QIODevice::ReadOnly | QIODevice::Text))
+            if(file.open(QIODevice::ReadOnly | QIODevice::Text))
             {
-              m_forecastUncertaintyValues.clear();
-              bool ok;
-              m_columnCount = 0;
+                m_forecastUncertaintyValues.clear();
+                bool ok;
+                m_columnCount = 0;
 
-              while (!file.atEnd())
+                while (!file.atEnd())
                 {
-                  QString line = file.readLine();
-                  QStringList  lineList = line.split(s_regex);
+                    QString line = file.readLine();
+                    QStringList  lineList = line.split(s_regex);
 
-                  QList<float> mvals;
+                    QList<float> mvals;
 
-                  for(int i = 0 ; i < lineList.count() ; i++)
+                    for(int i = 0 ; i < lineList.count() ; i++)
                     {
-                      float value = lineList[i].toFloat(&ok);
+                        float value = lineList[i].toFloat(&ok);
 
-                      if(ok)
+                        if(ok)
                         {
-                          mvals.append(value);
+                            mvals.append(value);
                         }
                     }
 
-                  if(mvals.count())
+                    if(mvals.count())
                     {
-                      m_forecastUncertaintyValues.append(mvals);
+                        m_forecastUncertaintyValues.append(mvals);
 
-                      if(!m_columnCount)
+                        if(!m_columnCount)
                         {
-                          m_columnCount = mvals.count();
+                            m_columnCount = mvals.count();
                         }
-                      else
+                        else
                         {
-                          ASSERT(m_columnCount == mvals.count() , "Column count mismatches");
+                            ASSERT(m_columnCount == mvals.count() , "Column count mismatches");
                         }
                     }
                 }
             }
         }
-      else
+        else
         {
-          if(file.open(QIODevice::WriteOnly | QIODevice::Text))
+            if(file.open(QIODevice::WriteOnly | QIODevice::Text))
             {
-              QTextStream tStream(&file);
-              tStream << "Forecast Uncertainty Values" << endl;
+                QTextStream tStream(&file);
+                tStream << "Forecast Uncertainty Values" << endl;
 
-              for(int i = 0 ; i < m_forecastUncertaintyValues.length() ; i++)
+                for(int i = 0 ; i < m_forecastUncertaintyValues.length() ; i++)
                 {
-                  QList<float> row = m_forecastUncertaintyValues[i];
+                    QList<float> row = m_forecastUncertaintyValues[i];
 
-                  for(int c = 0 ; c < row.length() ; c++)
+                    for(int c = 0 ; c < row.length() ; c++)
                     {
-                      if(c)
+                        if(c)
                         {
-                          tStream << "," << m_forecastUncertaintyValues[i][c];
+                            tStream << "," << m_forecastUncertaintyValues[i][c];
                         }
-                      else
+                        else
                         {
-                          tStream << m_forecastUncertaintyValues[i][c];
+                            tStream << m_forecastUncertaintyValues[i][c];
                         }
 
                     }
 
-                  tStream << endl;
+                    tStream << endl;
                 }
             }
         }
 
-      file.close();
+        file.close();
     }
 }
 
 void RealArrayMRVMItem::expandListTo(QList<QList<float> >& list, int index)
 {
-  while (list.length() < index )
+    while (list.length() < index )
     {
-      QList<float> values;
+        QList<float> values;
 
-      for(int i = 0 ; i < m_columnCount ; i++)
-        values.append(0);
+        for(int i = 0 ; i < m_columnCount ; i++)
+            values.append(0);
 
-      list.append(values);
+        list.append(values);
+    }
+}
+
+void RealArrayMRVMItem::expandListTo(QList<QString>& list, int index)
+{
+    while (list.length() <= index )
+    {
+        list.append("");
     }
 }
