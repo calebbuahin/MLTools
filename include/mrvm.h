@@ -68,17 +68,17 @@ public:
 
     const QList<QString>& trainingValuesAsString() const;
 
-    virtual af::array trainingValues(int row) = 0;
+    virtual af::array trainingValues(int valueIndex, int startRow, int length ) = 0;
 
     virtual void setTrainingValuesAsString(const QList<QString>& trainingValues);
 
     const QList<QString>& forecastValuesAsString() const;
 
-    virtual af::array forecastValues(int row) = 0;
+    virtual af::array forecastValues(int valueIndex, int startRow, int length) = 0;
 
     virtual void setForecastValuesAsString(const QList<QString>& forecastValues);
 
-    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) = 0;
+    virtual void setForecastValues(int valueIndex, const af::array& values, const af::array& uncertainty) = 0;
 
     const QList<QString>& forecastUncertaintyValuesAsString() const;
 
@@ -128,13 +128,13 @@ public:
 
     ~RealMRVMItem();
 
-    af::array trainingValues(int row) override;
+    af::array trainingValues(int valueIndex, int startRow = 0, int length = 1) override;
 
     virtual void setTrainingValuesAsString(const QList<QString>& trainingValues ) override;
 
-    af::array forecastValues(int row) override;
+    af::array forecastValues(int valueIndex, int startRow = 0, int length = 1) override;
 
-    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
+    virtual void setForecastValues(int valueIndex, const af::array& values, const af::array& uncertainty) override;
 
     virtual void readXML(QXmlStreamReader & xmlReader) override;
 
@@ -176,13 +176,13 @@ public:
 
     ~RealArrayMRVMItem();
 
-    virtual af::array trainingValues(int row) override;
+    virtual af::array trainingValues(int valueIndex, int startRow = 0, int length = 1) override;
 
     virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
 
-    virtual af::array forecastValues(int row) override;
+    virtual af::array forecastValues(int valueIndex, int startRow = 0, int length = 1) override;
 
-    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
+    virtual void setForecastValues(int valueIndex, const af::array& values, const af::array& uncertainty) override;
 
     virtual void readXML(QXmlStreamReader & xmlReader) override;
 
@@ -232,9 +232,9 @@ public:
 
     void setCategories(const QMap<QString,int>& categories);
 
-    virtual af::array trainingValues(int row) override;
+    virtual af::array trainingValues(int valueIndex, int startRow = 0, int length = 1) override;
 
-    virtual af::array forecastValues(int row) override;
+    virtual af::array forecastValues(int valueIndex, int startRow = 0, int length = 1) override;
 
     virtual void setForecastValues(int row, const af::array& values,
                                    const af::array& uncertainty) override;
@@ -345,13 +345,13 @@ public:
 
     QString getName() const override;
 
-    virtual af::array trainingValues(int row) override;
+    virtual af::array trainingValues(int valueIndex, int startRow, int length) override;
 
     virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
 
-    virtual af::array forecastValues(int row) override;
+    virtual af::array forecastValues(int valueIndex, int startRow, int length) override;
 
-    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
+    virtual void setForecastValues(int valueIndex, const af::array& values, const af::array& uncertainty) override;
 
     virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
 
@@ -360,7 +360,6 @@ public:
     virtual void readXML(QXmlStreamReader & xmlReader) override;
 
     virtual int numRowsPerTrainingValue() const override;
-
     virtual int numRowsPerForecastValue() const override;
 
     virtual void resetProperties() override;
@@ -371,11 +370,11 @@ private:
 
     void writeDataToRaster(const QString& filePath, const af::array& values);
 
-    af::array readDataFromRaster(const QString& filePath);
+    af::array readDataFromRaster(const QString& filePath, int startRow, int length);
 
-    af::array readTrainingDataFromSampler(const QString& filePath);
+    af::array readTrainingDataFromSampler(const QString& filePath , int startRow, int length);
 
-    af::array readForecastDataFromSampler(const QString& filePath);
+    af::array readForecastDataFromSampler(const QString& filePath , int startRow, int length);
 
     void readRasterProperties();
 
@@ -400,13 +399,13 @@ public:
 
     QString getName() const override;
 
-    virtual af::array trainingValues(int row) override;
+    virtual af::array trainingValues(int valueIndex, int startRow , int length ) override;
 
     virtual void setTrainingValuesAsString(const QList<QString>& trainingValues) override;
 
-    virtual af::array forecastValues(int row) override;
+    virtual af::array forecastValues(int valueIndex, int startRow, int length) override;
 
-    virtual void setForecastValues(int row, const af::array& values, const af::array& uncertainty) override;
+    virtual void setForecastValues(int valueIndex, const af::array& values, const af::array& uncertainty) override;
 
     virtual void setForecastValuesAsString(const QList<QString>& forecastValues) override;
 
@@ -428,11 +427,11 @@ private:
 
     void writeDataToRaster(const QString& filePathForecast, const af::array& values, const QString& filePathUncertain, const af::array& uncert);
 
-    af::array readDataFromRaster(const QString& filePath);
+    af::array readDataFromRaster(const QString& filePath, int startRow , int length);
 
-    af::array readTrainingDataFromSampler(const QString& filePath);
+    af::array readTrainingDataFromSampler(const QString& filePath, int startRow , int length);
 
-    af::array readForecastDataFromSampler(const QString& filePath);
+    af::array readForecastDataFromSampler(const QString& filePath, int startRow , int length);
 
     void readRasterProperties();
 
@@ -653,9 +652,13 @@ private:
 
     af::array getInputMatrix(int valueIndex, bool training = true);
 
+    af::array getInputMatrix(int valueIndex, int startRow = 0, int length = 1, bool training = true);
+
     af::array getOutputMatrix(bool training = true);
 
     af::array getOutputMatrix(int valueIndex, bool training = true);
+
+    af::array getOutputMatrix(int valueIndex,int startRow = 0, int length = 1, bool training = true);
 
     void writeOutput(int valueIndex, const af::array& values , const af::array& uncertainty);
 

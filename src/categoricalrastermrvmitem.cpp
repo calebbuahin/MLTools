@@ -34,21 +34,17 @@ QString CategoricalRaster::getName()  const
     return m_name;
 }
 
-af::array CategoricalRaster::trainingValues(int row)
+af::array CategoricalRaster::trainingValues(int valueIndex, int startRow , int length)
 {
-    if(row < m_trainingValuesAsString.count())
+    if(m_useRasterBootstrap)
     {
-        if(m_useRasterBootstrap)
-        {
-            return readTrainingDataFromSampler(m_trainingValuesAsString[row]);
-        }
-        else
-        {
-            return readDataFromRaster(m_trainingValuesAsString[row]);
-        }
+        return readTrainingDataFromSampler(m_trainingValuesAsString[valueIndex] , startRow , length);
+    }
+    else
+    {
+        return readDataFromRaster(m_trainingValuesAsString[valueIndex] , startRow , length);
     }
 
-    return af::array();
 }
 
 void CategoricalRaster::setTrainingValuesAsString(const QList<QString> &trainingValues)
@@ -56,21 +52,16 @@ void CategoricalRaster::setTrainingValuesAsString(const QList<QString> &training
     CategoricalMRVMItem::setTrainingValuesAsString(trainingValues);
 }
 
-af::array CategoricalRaster::forecastValues(int row)
+af::array CategoricalRaster::forecastValues(int valueIndex, int startRow , int length)
 {
-    if(row < m_forecastValuesAsString.count())
+    if(m_useRasterBootstrap)
     {
-        if(m_useRasterBootstrap)
-        {
-            return readForecastDataFromSampler(m_trainingValuesAsString[row]);
-        }
-        else
-        {
-            return readDataFromRaster(m_forecastValuesAsString[row]);
-        }
+        return readForecastDataFromSampler(m_forecastValuesAsString[valueIndex] , startRow , length);
     }
-
-    return af::array();
+    else
+    {
+        return readDataFromRaster(m_forecastValuesAsString[valueIndex], startRow , length);
+    }
 }
 
 void CategoricalRaster::setForecastValues(int row, const af::array& valuesf , const af::array& uncertf)
@@ -226,7 +217,7 @@ QString CategoricalRaster::type() const
     return "CategoricalRaster";
 }
 
-af::array CategoricalRaster::readDataFromRaster(const QString& filePath)
+af::array CategoricalRaster::readDataFromRaster(const QString& filePath, int startRow , int length)
 {
     af::array values;
 
@@ -238,7 +229,7 @@ af::array CategoricalRaster::readDataFromRaster(const QString& filePath)
         {
             GDALRasterBand* dataBand = dataset->GetRasterBand(1);
             int * data = (int*) CPLMalloc(sizeof(int)*m_xSize*m_ySize);
-            values = af::constant(minCValue, m_numRowsPerTrainingValue, m_columnCount);
+            values = af::constant(minCValue, length, m_columnCount);
 
             dataBand->RasterIO(GF_Read, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Int32, 0,0 );
 
@@ -252,11 +243,15 @@ af::array CategoricalRaster::readDataFromRaster(const QString& filePath)
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            int pclass = data[j * m_xSize + i];
-                            QPointF p = getCoordinates(i,j);
-                            values(count,m_indexbyclass[pclass]) = maxCValue ;
-                            values(count , m_categorybyclass.size()) =p.x();
-                            values(count, m_categorybyclass.size() + 1) = p.y();
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                int pclass = data[j * m_xSize + i];
+                                QPointF p = getCoordinates(i,j);
+                                int rIndex = count - startRow;
+                                values(rIndex,m_indexbyclass[pclass]) = maxCValue ;
+                                values(rIndex , m_categorybyclass.size()) =p.x();
+                                values(rIndex, m_categorybyclass.size() + 1) = p.y();
+                            }
 
                             count++;
                         }
@@ -273,8 +268,11 @@ af::array CategoricalRaster::readDataFromRaster(const QString& filePath)
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            int pclass = data[j * m_xSize + i];
-                            values(count,m_indexbyclass[pclass]) = maxCValue ;
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                int pclass = data[j * m_xSize + i];
+                                values(count - startRow,m_indexbyclass[pclass]) = maxCValue ;
+                            }
                             count++;
                         }
                     }
@@ -295,9 +293,9 @@ af::array CategoricalRaster::readDataFromRaster(const QString& filePath)
     return values;
 }
 
-af::array CategoricalRaster::readTrainingDataFromSampler(const QString& filePath)
+af::array CategoricalRaster::readTrainingDataFromSampler(const QString& filePath, int startRow , int length)
 {
-    af::array values = af::constant(minCValue, m_numRowsPerTrainingValue, m_columnCount);
+    af::array values = af::constant(minCValue, length, m_columnCount);
 
     if(QFile::exists(filePath) && m_numRowsPerTrainingValue)
     {
@@ -312,24 +310,24 @@ af::array CategoricalRaster::readTrainingDataFromSampler(const QString& filePath
 
             if(m_includeLocation)
             {
-                for(int i = 0 ; i < m_numRowsPerTrainingValue ; i++)
+                for(int i = startRow ; i < startRow + length ; i++)
                 {
                     QPoint pp = m_sampleLocations[i];
                     int pclass = data[pp.y() * m_xSize + pp.x()];
                     QPointF p = getCoordinates(pp);
-                    values(i,m_indexbyclass[pclass]) = maxCValue ;
-                    values(i , m_categorybyclass.size()) = p.x();
-                    values(i, m_categorybyclass.size() + 1) = p.y();
+                    values(i - startRow,m_indexbyclass[pclass]) = maxCValue ;
+                    values(i - startRow , m_categorybyclass.size()) = p.x();
+                    values(i - startRow, m_categorybyclass.size() + 1) = p.y();
 
                 }
             }
             else
             {
-                for(int i = 0 ; i < m_numRowsPerTrainingValue ; i++)
+                for(int i = startRow ; i < startRow + length ; i++)
                 {
                     QPoint pp = m_sampleLocations[i];
                     int pclass = data[pp.y() * m_xSize + pp.x()];
-                    values(i,m_indexbyclass[pclass]) = maxCValue ;
+                    values(i - startRow,m_indexbyclass[pclass]) = maxCValue ;
 
                 }
             }
@@ -348,7 +346,7 @@ af::array CategoricalRaster::readTrainingDataFromSampler(const QString& filePath
     return values;
 }
 
-af::array CategoricalRaster::readForecastDataFromSampler(const QString& filePath)
+af::array CategoricalRaster::readForecastDataFromSampler(const QString& filePath, int startRow , int length)
 {
     af::array values;
 
@@ -360,8 +358,8 @@ af::array CategoricalRaster::readForecastDataFromSampler(const QString& filePath
         {
             GDALRasterBand* dataBand = dataset->GetRasterBand(1);
             int * data = (int*) CPLMalloc(sizeof(int)*m_xSize*m_ySize);
-            values = af::constant(minCValue, m_numRowsPerForecastValue, m_columnCount);
-           
+            values = af::constant(minCValue, length, m_columnCount);
+
             
             dataBand->RasterIO(GF_Read, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Int32, 0,0 );
 
@@ -375,12 +373,15 @@ af::array CategoricalRaster::readForecastDataFromSampler(const QString& filePath
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            int pclass = data[j * m_xSize + i];
-                            QPointF p = getCoordinates(i,j);
-                            values(count , m_indexbyclass[pclass]) = maxCValue;
-                            values(count , m_categorybyclass.size()) =p.x();
-                            values(count, m_categorybyclass.size() + 1) = p.y();
-
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                int pclass = data[j * m_xSize + i];
+                                QPointF p = getCoordinates(i,j);
+                                int rIndex = count - startRow;
+                                values(rIndex , m_indexbyclass[pclass]) = maxCValue;
+                                values(rIndex , m_categorybyclass.size()) =p.x();
+                                values(rIndex, m_categorybyclass.size() + 1) = p.y();
+                            }
                             count++;
                         }
                     }
@@ -396,15 +397,19 @@ af::array CategoricalRaster::readForecastDataFromSampler(const QString& filePath
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            int pclass = data[j * m_xSize + i];
-                            values(count , m_indexbyclass[pclass]) = maxCValue;
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                int pclass = data[j * m_xSize + i];
+                                values(count - startRow, m_indexbyclass[pclass]) = maxCValue;
+                            }
+
                             count++;
                         }
                     }
                 }
             }
 
-           // af_print(values);
+            // af_print(values);
 
             CPLFree(data);
             GDALClose(dataset);

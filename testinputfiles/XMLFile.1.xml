@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MRVM name="Test" mode="TrainingAndRegression">
     <Tolerance>0.1</Tolerance>
-    <MaxNumberOfIterations>5</MaxNumberOfIterations>
+    <MaxNumberOfIterations>10</MaxNumberOfIterations>
     <NumberOfIterations>5</NumberOfIterations>
     <Verbose>True</Verbose>
     <Converged>False</Converged>

@@ -18,10 +18,10 @@ RealRaster::~RealRaster()
 
     m_validCell = NULL;
 
-/*    if(m_driver)
+    /*    if(m_driver)
         delete m_driver*/;
 
-//    m_driver = NULL;
+    //    m_driver = NULL;
 }
 
 QString RealRaster::getName() const
@@ -29,21 +29,16 @@ QString RealRaster::getName() const
     return m_name;
 }
 
-af::array RealRaster::trainingValues(int row)
+af::array RealRaster::trainingValues(int valueIndex, int startRow, int length)
 {
-    if(row < m_trainingValuesAsString.count())
+    if(m_useRasterBootstrap)
     {
-        if(m_useRasterBootstrap)
-        {
-            return readTrainingDataFromSampler(m_trainingValuesAsString[row]);
-        }
-        else
-        {
-            return readDataFromRaster(m_trainingValuesAsString[row]);
-        }
+        return readTrainingDataFromSampler(m_trainingValuesAsString[valueIndex] , startRow, length);
     }
-
-    return af::array();
+    else
+    {
+        return readDataFromRaster(m_trainingValuesAsString[valueIndex] , startRow , length);
+    }
 }
 
 void RealRaster::setTrainingValuesAsString(const QList<QString> &trainingValues)
@@ -51,21 +46,17 @@ void RealRaster::setTrainingValuesAsString(const QList<QString> &trainingValues)
     MRVMItem::setTrainingValuesAsString(trainingValues);
 }
 
-af::array RealRaster::forecastValues(int row)
+af::array RealRaster::forecastValues(int valueIndex, int startRow, int length)
 {
-    if(row < m_forecastValuesAsString.count())
+    if(m_useRasterBootstrap)
     {
-        if(m_useRasterBootstrap)
-        {
-            return readForecastDataFromSampler(m_trainingValuesAsString[row]);
-        }
-        else
-        {
-            return readDataFromRaster(m_forecastValuesAsString[row]);
-        }
+        return readForecastDataFromSampler(m_forecastValuesAsString[valueIndex], startRow, length);
+    }
+    else
+    {
+        return readDataFromRaster(m_forecastValuesAsString[valueIndex], startRow, length);
     }
 
-    return af::array();
 }
 
 void RealRaster::setForecastValues(int row, const af::array& values, const af::array& uncertainty)
@@ -200,9 +191,9 @@ void RealRaster::writeDataToRaster(const QString& filePath, const af::array& val
     delete[] values;
 }
 
-af::array RealRaster::readDataFromRaster(const QString& filePath)
+af::array RealRaster::readDataFromRaster(const QString& filePath, int startRow, int length)
 {
-    af::array values(m_numRowsPerTrainingValue,m_columnCount);
+    af::array values(length,m_columnCount);
 
     if(QFile::exists(filePath) && m_numValidPixels)
     {
@@ -223,12 +214,17 @@ af::array RealRaster::readDataFromRaster(const QString& filePath)
                 {
                     for(int j = 0 ; j < m_ySize ; j++)
                     {
-                        if(m_validCell[j * m_xSize + i])
+                        if(m_validCell[j * m_xSize + i] )
                         {
-                            QPointF loc = getCoordinates(i,j);
-                            values(count,0) = data[j*m_xSize + i];
-                            values(count,1) = loc.x();
-                            values(count,2) = loc.y();
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                QPointF loc = getCoordinates(i,j);
+                                int rIndex = count - startRow;
+                                values(rIndex,0) = data[j*m_xSize + i];
+                                values(rIndex,1) = loc.x();
+                                values(rIndex,2) = loc.y();
+                            }
+
                             count++;
                         }
                     }
@@ -242,7 +238,10 @@ af::array RealRaster::readDataFromRaster(const QString& filePath)
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            values(count,0) = data[j*m_xSize + i];
+                            if( count >= startRow && count < startRow + length)
+                            {
+                                values(count - startRow,0) = data[j*m_xSize + i];
+                            }
                             count++;
                         }
                     }
@@ -261,9 +260,9 @@ af::array RealRaster::readDataFromRaster(const QString& filePath)
     return values;
 }
 
-af::array RealRaster::readTrainingDataFromSampler(const QString& filePath)
+af::array RealRaster::readTrainingDataFromSampler(const QString& filePath, int startRow, int length)
 {
-    af::array values(m_numRowsPerTrainingValue, m_columnCount);
+    af::array values(length, m_columnCount);
 
     if(QFile::exists(filePath) && m_numValidPixels)
     {
@@ -278,23 +277,24 @@ af::array RealRaster::readTrainingDataFromSampler(const QString& filePath)
 
             if(m_includeLocation)
             {
-                for(int i = 0 ; i < m_numRowsPerTrainingValue ; i++)
+                for(int i = startRow ; i < startRow + length ; i++)
                 {
                     QPoint p = m_sampleLocations[i];
                     QPointF pl = getCoordinates(p);
                     float cdata = data[p.y()*m_xSize + p.x()];
-                    values(i,0) = cdata;
-                    values(i,1) = pl.x();
-                    values(i,2) = pl.y();
+                    int rIndex = i - startRow;
+                    values(rIndex,0) = cdata;
+                    values(rIndex,1) = pl.x();
+                    values(rIndex,2) = pl.y();
                 }
             }
             else
             {
-                for(int i = 0 ; i < m_numRowsPerTrainingValue ; i++)
+                for(int i = startRow ; i < startRow + length ; i++)
                 {
                     QPoint p = m_sampleLocations[i];
                     float cdata = data[p.y()*m_xSize + p.x()];
-                    values(i,0) = cdata;
+                    values(i - startRow,0) = cdata;
                 }
             }
 
@@ -310,9 +310,9 @@ af::array RealRaster::readTrainingDataFromSampler(const QString& filePath)
     return values;
 }
 
-af::array RealRaster::readForecastDataFromSampler(const QString& filePath)
+af::array RealRaster::readForecastDataFromSampler(const QString& filePath, int startRow, int length)
 {
-    af::array values(m_numRowsPerForecastValue, m_columnCount);
+    af::array values(length, m_columnCount);
 
     if(QFile::exists(filePath) && m_numValidPixels)
     {
@@ -323,7 +323,7 @@ af::array RealRaster::readForecastDataFromSampler(const QString& filePath)
             GDALRasterBand* dataBand = dataset->GetRasterBand(1);
             float * data = (float*) CPLMalloc(sizeof(float)*m_xSize*m_ySize);
 
-            dataBand->RasterIO(GF_Read, 0,0,m_xSize , m_ySize, data, m_xSize , m_ySize , GDT_Float32, 0,0 );
+            dataBand->RasterIO(GF_Read, 0, 0, m_xSize, m_ySize, data, m_xSize, m_ySize, GDT_Float32, 0, 0);
 
             if(m_includeLocation)
             {
@@ -335,10 +335,14 @@ af::array RealRaster::readForecastDataFromSampler(const QString& filePath)
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            QPointF p = getCoordinates(i,j);
-                            values(count,0) = data[j*m_xSize + i];
-                            values(count,1) = p.x();
-                            values(count,2) = p.y();
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                QPointF p = getCoordinates(i,j);
+                                int rIndex = count - startRow;
+                                values(rIndex,0) = data[j*m_xSize + i];
+                                values(rIndex,1) = p.x();
+                                values(rIndex,2) = p.y();
+                            }
                             count++;
                         }
                     }
@@ -354,7 +358,11 @@ af::array RealRaster::readForecastDataFromSampler(const QString& filePath)
                     {
                         if(m_validCell[j * m_xSize + i])
                         {
-                            values(count,0) = data[j*m_xSize + i];
+                            if(count >= startRow && count < startRow + length)
+                            {
+                                values(count - startRow,0) = data[j*m_xSize + i];
+                            }
+
                             count++;
                         }
                     }

@@ -14,17 +14,17 @@ RealMRVMItem::~RealMRVMItem()
 
 }
 
-af::array RealMRVMItem::trainingValues(int row)
+af::array RealMRVMItem::trainingValues(int valueIndex, int startRow, int length)
 {
     af::array value(1,1);
 
     if(!m_properties["ReadFromFile"].toBool())
     {
-        value = m_trainingValuesAsString[row].toDouble();
+        value = m_trainingValuesAsString[valueIndex].toDouble();
     }
     else
     {
-        value = m_trainingValues[row];
+        value = m_trainingValues[valueIndex];
     }
 
     return value;
@@ -51,17 +51,17 @@ void RealMRVMItem::setTrainingValuesAsString(const QList<QString>& trainingValue
     }
 }
 
-af::array RealMRVMItem::forecastValues(int row)
+af::array RealMRVMItem::forecastValues(int valueIndex, int startRow, int length)
 {
     af::array value(1,1);
 
     if(!m_properties["ReadFromFile"].toBool())
     {
-        value = m_forecastValuesAsString[row].toDouble();
+        value = m_forecastValuesAsString[valueIndex].toDouble();
     }
     else
     {
-        value = m_forecastValues[row];
+        value = m_forecastValues[valueIndex];
     }
 
     return value;

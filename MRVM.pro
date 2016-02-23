@@ -32,7 +32,7 @@ HEADERS += ./include/mrvm.h \
            ./include/mrvm_global.h \
            ./include/roots.h
 
-PRECOMPILED_HEADER += ./headers/stdafx.h
+PRECOMPILED_HEADER += ./include/stdafx.h
 
 SOURCES += ./src/stdafx.cpp \
            ./src/main.cpp \

@@ -3,7 +3,7 @@
 #include <QTextStream>
 
 CategoricalMRVMItem::CategoricalMRVMItem(MRVMItem::IOType iotype, const QString& name)
-    :MRVMItem(iotype, name), maxCValue(100.0f),minCValue(0.00000000001f)
+    :MRVMItem(iotype, name), maxCValue(100.0f),minCValue(0.0000001f)
 {
 
 }
@@ -23,7 +23,7 @@ void CategoricalMRVMItem::setCategories(const QMap<QString, int> &categories)
     this->m_classbycategory = categories;
 }
 
-af::array CategoricalMRVMItem::trainingValues(int row)
+af::array CategoricalMRVMItem::trainingValues(int valueIndex, int startRow, int length)
 {
     af::array values(1, m_classbycategory.count());
 
@@ -31,19 +31,19 @@ af::array CategoricalMRVMItem::trainingValues(int row)
 
     if(!m_properties["ReadFromFile"].toBool())
     {
-        int category = m_trainingValuesAsString[row].toInt();
+        int category = m_trainingValuesAsString[valueIndex].toInt();
         values(0,m_indexbyclass[category]) =  maxCValue;
     }
     else
     {
-        int category = m_trainingValues[row];
+        int category = m_trainingValues[valueIndex];
         values(0,m_indexbyclass[category]) =  maxCValue;
     }
 
     return values;
 }
 
-af::array CategoricalMRVMItem::forecastValues(int row)
+af::array CategoricalMRVMItem::forecastValues(int valueIndex, int startRow, int length)
 {
     af::array values(1,m_classbycategory.count());
 
@@ -51,12 +51,12 @@ af::array CategoricalMRVMItem::forecastValues(int row)
 
     if(!m_properties["ReadFromFile"].toBool())
     {
-        int category = m_forecastValuesAsString[row].toInt();
+        int category = m_forecastValuesAsString[valueIndex].toInt();
         values(0, m_indexbyclass[category]) =  maxCValue;
     }
     else
     {
-        int category = m_forecastValues[row];
+        int category = m_forecastValues[valueIndex];
         values(0, m_indexbyclass[category]) =  maxCValue;
     }
 

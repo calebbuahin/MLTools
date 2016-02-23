@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MRVM name="Test" mode="TrainingAndRegression">
     <Tolerance>1</Tolerance>
-    <MaxNumberOfIterations>100</MaxNumberOfIterations>
+    <MaxNumberOfIterations>1000</MaxNumberOfIterations>
     <NumberOfIterations>25</NumberOfIterations>
     <Verbose>True</Verbose>
     <Converged>False</Converged>
@@ -13,25 +13,10 @@
         <UseBias>True</UseBias>
         <PolynomialPower>4</PolynomialPower>
     </Kernel>
-    <RelevantVectors>
-        <Vector>1</Vector>
-        <Vector>44</Vector>
-        <Vector>66</Vector>
-        <Vector>113</Vector>
-        <Vector>118</Vector>
-        <Vector>123</Vector>
-        <Vector>137</Vector>
-        <Vector>185</Vector>
-        <Vector>213</Vector>
-        <Vector>218</Vector>
-        <Vector>448</Vector>
-        <Vector>600</Vector>
-        <Vector>676</Vector>
-    </RelevantVectors>
     <InputItems>
         <MRVMItem name="Previous_LU" type="CategoricalRaster">
             <Properties>
-                <Property Name="IncludeLocation">true</Property>
+                <Property Name="IncludeLocation">false</Property>
                 <Property Name="ReadFromFile"></Property>
             </Properties>
             <Categories>
@@ -123,7 +108,7 @@
     </OutputItems>
     <RasterBootstrapSamplers>
         <RasterBootstrapSampler>
-            <NumSamples>2000</NumSamples>
+            <NumSamples>1000</NumSamples>
             <RasterItems>
                 <RasterItem Name="Previous_LU"/>
                 <RasterItem Name="Slope"/>

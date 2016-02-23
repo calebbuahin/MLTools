@@ -1,22 +1,38 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <MRVM name="Test" mode="TrainingAndRegression">
     <Tolerance>1</Tolerance>
-    <MaxNumberOfIterations>5</MaxNumberOfIterations>
-    <NumberOfIterations>10</NumberOfIterations>
+    <MaxNumberOfIterations>3</MaxNumberOfIterations>
+    <NumberOfIterations>25</NumberOfIterations>
     <Verbose>True</Verbose>
-    <Converged>True</Converged>
-    <MaxAlphaChange>15.8409</MaxAlphaChange>
-    <MinAlphaChange>1.04905e-05</MinAlphaChange>
+    <Converged>False</Converged>
+    <MaxAlphaChange>12.1422</MaxAlphaChange>
+    <MinAlphaChange>0.0019097</MinAlphaChange>
     <MatrixOutputFile>/Users/calebbuahin/Documents/Projects/MRVM/testinputfiles/outputmatrixluse.txt</MatrixOutputFile>
     <Kernel KernelType="Gaussian">
-        <LengthScale>2.5</LengthScale>
+        <LengthScale>0.5</LengthScale>
         <UseBias>True</UseBias>
         <PolynomialPower>4</PolynomialPower>
     </Kernel>
+    <RelevantVectors>
+        <Vector>1</Vector>
+        <Vector>44</Vector>
+        <Vector>66</Vector>
+        <Vector>113</Vector>
+        <Vector>118</Vector>
+        <Vector>123</Vector>
+        <Vector>137</Vector>
+        <Vector>185</Vector>
+        <Vector>213</Vector>
+        <Vector>218</Vector>
+        <Vector>448</Vector>
+        <Vector>600</Vector>
+        <Vector>676</Vector>
+    </RelevantVectors>
     <InputItems>
         <MRVMItem name="Previous_LU" type="CategoricalRaster">
             <Properties>
-                <Property Name="IncludeLocation">true</Property>
+                <Property Name="IncludeLocation">false</Property>
+                <Property Name="ReadFromFile"></Property>
             </Properties>
             <Categories>
                 <Category Name="Agriculture">2</Category>
@@ -40,6 +56,8 @@
         </MRVMItem>
         <MRVMItem name="Slope" type="RealRaster">
             <Properties>
+                <Property Name="IncludeLocation">true</Property>
+                <Property Name="ReadFromFile">false</Property>
             </Properties>
             <TrainingValues>
                 <Value>/Users/calebbuahin/Documents/Projects/Land Use/mrvmtesting/clipped/cache.slope.tif</Value>
@@ -56,6 +74,7 @@
         <MRVMItem name="Years_from_Initial_LU" type="RealMRVMItem">
             <Properties>
                 <Property Name="IncludeLocation">true</Property>
+                <Property Name="ReadFromFile">false</Property>
             </Properties>
             <TrainingValues>
                 <Value>8</Value>
@@ -71,9 +90,10 @@
         </MRVMItem>
     </InputItems>
     <OutputItems>
-        <MRVMItem name= "LU" type="CategoricalRaster">
+        <MRVMItem name="LU" type="CategoricalRaster">
             <Properties>
-                <Property Name="IncludeLocation">true</Property>
+                <Property Name="IncludeLocation">false</Property>
+                <Property Name="ReadFromFile"></Property>
             </Properties>
             <Categories>
                 <Category Name="Agriculture">2</Category>
@@ -102,13 +122,13 @@
         </MRVMItem>
     </OutputItems>
     <RasterBootstrapSamplers>
-       <RasterBootstrapSampler>
-           <NumSamples>500</NumSamples>
-           <RasterItems>
-               <RasterItem Name="Previous_LU" />
-               <RasterItem Name="Slope" />
-               <RasterItem Name="LU" />
-           </RasterItems>
+        <RasterBootstrapSampler>
+            <NumSamples>400</NumSamples>
+            <RasterItems>
+                <RasterItem Name="Previous_LU"/>
+                <RasterItem Name="Slope"/>
+                <RasterItem Name="LU"/>
+            </RasterItems>
         </RasterBootstrapSampler>
     </RasterBootstrapSamplers>
 </MRVM>

@@ -16,17 +16,17 @@ RealArrayMRVMItem::~RealArrayMRVMItem()
 
 }
 
-af::array RealArrayMRVMItem::trainingValues(int row)
+af::array RealArrayMRVMItem::trainingValues(int valueIndex, int startRow, int length)
 {
 
     af::array values(1, m_columnCount);
 
     if(!m_properties["ReadFromFile"].toBool())
     {
-        ASSERT(row < m_trainingValuesAsString.count(),"Row must be less or equal to number of rows");
+        ASSERT(valueIndex < m_trainingValuesAsString.count(),"Row must be less or equal to number of rows");
 
 
-        QString line = m_trainingValuesAsString[row];
+        QString line = m_trainingValuesAsString[valueIndex];
         QStringList columnValues = line.split(",");
 
         for(int i = 0 ; i < m_columnCount; i++)
@@ -36,7 +36,7 @@ af::array RealArrayMRVMItem::trainingValues(int row)
     }
     else
     {
-        QList<float> vals = m_trainingValues[row];
+        QList<float> vals = m_trainingValues[valueIndex];
 
         for(int i = 0 ; i < m_columnCount; i++)
         {
@@ -63,16 +63,16 @@ void RealArrayMRVMItem::setTrainingValuesAsString(const QList<QString> &training
     }
 }
 
-af::array RealArrayMRVMItem::forecastValues(int row)
+af::array RealArrayMRVMItem::forecastValues(int valueIndex, int startRow, int length)
 {
 
     af::array values(1, m_columnCount);
 
     if(!m_properties["ReadFromFile"].toBool())
     {
-        ASSERT(row < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
+        ASSERT(valueIndex < m_forecastValuesAsString.count(),"Row must be less or equal to number of rows");
 
-        QString line = m_forecastValuesAsString[row];
+        QString line = m_forecastValuesAsString[valueIndex];
         QStringList columnValues = line.split(",");
 
         for(int i = 0 ; i < m_columnCount; i++)
@@ -82,7 +82,7 @@ af::array RealArrayMRVMItem::forecastValues(int row)
     }
     else
     {
-        QList<float> vals = m_trainingValues[row];
+        QList<float> vals = m_trainingValues[valueIndex];
 
         for(int i = 0 ; i < m_columnCount; i++)
         {
